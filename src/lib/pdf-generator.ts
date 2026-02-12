@@ -147,7 +147,7 @@ export async function generatePdf(
           case 'bw':
             for (let k = 0; k < data.length; k += 4) {
               const avg = (data[k] + data[k + 1] + data[k + 2]) / 3;
-              const color = avg > 128 ? 255 : 0;
+              const color = avg > 200 ? 255 : 0; // Higher threshold for cleaner whites
               data[k] = color;
               data[k + 1] = color;
               data[k + 2] = color;
@@ -155,9 +155,11 @@ export async function generatePdf(
             break;
           case 'invert':
             for (let k = 0; k < data.length; k += 4) {
-              data[k] = 255 - data[k];
-              data[k + 1] = 255 - data[k + 1];
-              data[k + 2] = 255 - data[k + 2];
+              const avg = (data[k] + data[k + 1] + data[k + 2]) / 3;
+              const color = avg > 200 ? 0 : 255; // High-contrast inversion
+              data[k] = color;
+              data[k + 1] = color;
+              data[k + 2] = color;
             }
             break;
         }
@@ -166,11 +168,11 @@ export async function generatePdf(
 
       // f-g. Get image bytes
       const processedImageBytes = await fetch(
-        canvas.toDataURL('image/jpeg')
+        canvas.toDataURL('image/png')
       ).then((res) => res.arrayBuffer());
 
       // h. Embed into PDF
-      const pdfImage = await newPdfDoc.embedJpg(processedImageBytes);
+      const pdfImage = await newPdfDoc.embedPng(processedImageBytes);
 
       // i. Calculate position and draw
       const { width: imgWidth, height: imgHeight } = pdfImage.scale(1);

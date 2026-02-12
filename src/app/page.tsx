@@ -247,9 +247,12 @@ export default function Home() {
           const pdf = await pdfjsLib.getDocument(typedarray).promise;
           const newPages: Page[] = [];
 
+          // Use a higher scale for better resolution, closer to 300 DPI
+          const scale = 3.0;
+
           for (let i = 1; i <= pdf.numPages; i++) {
             const page = await pdf.getPage(i);
-            const viewport = page.getViewport({ scale: 1.5 });
+            const viewport = page.getViewport({ scale });
             const canvas = document.createElement('canvas');
             const context = canvas.getContext('2d');
             canvas.height = viewport.height;
@@ -260,7 +263,8 @@ export default function Home() {
                 .promise;
               newPages.push({
                 id: i,
-                sourceUrl: canvas.toDataURL('image/jpeg', 0.8),
+                // Use PNG for lossless image quality
+                sourceUrl: canvas.toDataURL('image/png'),
                 sourceHint: `page ${i}`,
                 selected: true,
               });
