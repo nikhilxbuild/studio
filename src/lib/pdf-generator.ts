@@ -109,12 +109,33 @@ export async function generatePdf(
       const sourceWidth = image.width * (1 - cropAmount * 2);
       const sourceHeight = image.height * (1 - cropAmount * 2);
 
+      // Determine optimal canvas size for embedding to reduce file size.
+      // Aim for ~200 DPI in the final PDF cell.
+      const targetEmbedDPI = 200;
+      const embedScaleFactor = targetEmbedDPI / 72; // PDF points are 1/72 inch
+      const targetCellPixelWidth = cellWidth * embedScaleFactor;
+      const targetCellPixelHeight = cellHeight * embedScaleFactor;
+      
+      const sourceAspectRatio = sourceWidth / sourceHeight;
+      const targetCellAspectRatio = targetCellPixelWidth / targetCellPixelHeight;
+      
+      let finalCanvasWidth, finalCanvasHeight;
+      if (sourceAspectRatio > targetCellAspectRatio) {
+          finalCanvasWidth = targetCellPixelWidth;
+          finalCanvasHeight = targetCellPixelWidth / sourceAspectRatio;
+      } else {
+          finalCanvasHeight = targetCellPixelHeight;
+          finalCanvasWidth = targetCellPixelHeight * sourceAspectRatio;
+      }
+      
       const canvas = document.createElement('canvas');
-      canvas.width = sourceWidth;
-      canvas.height = sourceHeight;
+      canvas.width = finalCanvasWidth;
+      canvas.height = finalCanvasHeight;
       const ctx = canvas.getContext('2d', { willReadFrequently: true });
       if (!ctx) throw new Error('Could not get canvas context');
 
+      // Draw the (potentially cropped) high-res source image onto the smaller canvas.
+      // This performs the downscaling.
       ctx.drawImage(
         image,
         sourceX,
@@ -159,11 +180,12 @@ export async function generatePdf(
         ctx.putImageData(imageData, 0, 0);
       }
 
+      // Use JPEG for smaller file size
       const processedImageBytes = await fetch(
-        canvas.toDataURL('image/png')
+        canvas.toDataURL('image/jpeg', 0.8)
       ).then((res) => res.arrayBuffer());
 
-      const pdfImage = await newPdfDoc.embedPng(processedImageBytes);
+      const pdfImage = await newPdfDoc.embedJpg(processedImageBytes);
 
       const { width: imgWidth, height: imgHeight } = pdfImage.scale(1);
       const scale = Math.min(cellWidth / imgWidth, cellHeight / imgHeight);
