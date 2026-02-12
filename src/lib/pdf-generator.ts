@@ -171,39 +171,18 @@ export async function generatePdf(
             break;
           case 'invert':
             for (let k = 0; k < data.length; k += 4) {
-              const r = data[k];
-              const g = data[k + 1];
-              const b = data[k + 2];
-
-              // Determine luminance
-              const lum = 0.299 * r + 0.587 * g + 0.114 * b;
-
-              if (lum > 240) {
-                // Very light colors (background) become pure white
-                data[k] = 255;
-                data[k + 1] = 255;
-                data[k + 2] = 255;
-              } else if (lum < 30) {
-                // Very dark colors (text) become pure black
-                data[k] = 0;
-                data[k + 1] = 0;
-                data[k + 2] = 0;
-              } else {
-                // Mid-range colors (diagrams, highlights) are inverted and desaturated
-                
-                // 1. Invert
-                const invR = 255 - r;
-                const invG = 255 - g;
-                const invB = 255 - b;
-
-                // 2. Desaturate by 20% to remove color cast
-                const desaturationAmount = 0.20;
-                const gray = invR * 0.299 + invG * 0.587 + invB * 0.114;
-                
-                data[k] = invR * (1 - desaturationAmount) + gray * desaturationAmount;
-                data[k + 1] = invG * (1 - desaturationAmount) + gray * desaturationAmount;
-                data[k + 2] = invB * (1 - desaturationAmount) + gray * desaturationAmount;
-              }
+              // 1. Soft invert as per user's formula
+              let r = 255 - data[k] * 0.85;
+              let g = 255 - data[k + 1] * 0.85;
+              let b = 255 - data[k + 2] * 0.85;
+      
+              // 2. Desaturate by 25%
+              const desaturationAmount = 0.25;
+              const gray = r * 0.299 + g * 0.587 + b * 0.114;
+              
+              data[k] = r * (1 - desaturationAmount) + gray * desaturationAmount;
+              data[k + 1] = g * (1 - desaturationAmount) + gray * desaturationAmount;
+              data[k + 2] = b * (1 - desaturationAmount) + gray * desaturationAmount;
             }
             break;
         }
@@ -212,7 +191,7 @@ export async function generatePdf(
 
       // Use JPEG for smaller file size
       const processedImageBytes = await fetch(
-        canvas.toDataURL('image/jpeg', 0.8)
+        canvas.toDataURL('image/jpeg', 0.85)
       ).then((res) => res.arrayBuffer());
 
       const pdfImage = await newPdfDoc.embedJpg(processedImageBytes);
