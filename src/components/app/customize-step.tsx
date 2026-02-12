@@ -97,8 +97,8 @@ export function CustomizeStep({
             <Separator />
             {/* Layout Options */}
             <div className="grid grid-cols-1 gap-8 sm:grid-cols-2">
-              <div className="space-y-4">
-                <h3 className="font-semibold flex items-center"><Frame className="mr-2" />Margins & Orientation</h3>
+               <div className="space-y-4">
+                <h3 className="font-semibold flex items-center"><Frame className="mr-2" />Orientation</h3>
                 <RadioGroup
                   value={customization.orientation}
                   onValueChange={(val) =>
@@ -118,6 +118,9 @@ export function CustomizeStep({
                     <Label htmlFor="landscape">Landscape</Label>
                   </div>
                 </RadioGroup>
+              </div>
+              <div className="space-y-4">
+                <h3 className="font-semibold flex items-center"><Droplets className="mr-2" />Margins</h3>
                 <RadioGroup
                   value={customization.margin}
                   onValueChange={(val) =>

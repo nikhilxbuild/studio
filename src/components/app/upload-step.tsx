@@ -9,7 +9,7 @@ import { cn } from '@/lib/utils';
 import { Card, CardContent } from '../ui/card';
 
 interface UploadStepProps {
-  onUpload: () => void;
+  onUpload: (file: File) => void;
 }
 
 export function UploadStep({ onUpload }: UploadStepProps) {
@@ -20,9 +20,7 @@ export function UploadStep({ onUpload }: UploadStepProps) {
   const handleFileSelect = (files: FileList | null) => {
     if (files && files[0]) {
       if (files[0].type === 'application/pdf') {
-        // In a real app, you would process the file here.
-        // For this demo, we just trigger the next step.
-        onUpload();
+        onUpload(files[0]);
       } else {
         toast({
           title: 'Invalid File Type',
