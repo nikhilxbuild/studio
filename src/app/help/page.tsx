@@ -69,7 +69,9 @@ export default function HelpPage() {
         <div className="text-center">
             <h3 className="text-xl font-semibold">Can't find your answer?</h3>
             <p className="mt-2 text-muted-foreground">Our community and team are here to help.</p>
-            <Button className="mt-4" size="lg">Contact Support</Button>
+            <Button className="mt-4" size="lg" asChild>
+              <a href="mailto:EduSlideAi.in@gmail.com">Contact Support</a>
+            </Button>
         </div>
 
       </div>
