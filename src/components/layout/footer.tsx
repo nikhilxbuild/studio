@@ -29,7 +29,7 @@ const footerLinks = [
 
 export function Footer() {
   return (
-    <footer className="w-full border-t border-white/10 bg-background">
+    <footer className="w-full bg-transparent">
       <div className="container mx-auto max-w-7xl px-4 py-8 md:py-12">
         <div className="flex flex-col items-center gap-6 text-center">
             <div className="flex flex-wrap items-center justify-center gap-x-6 gap-y-2 text-sm">

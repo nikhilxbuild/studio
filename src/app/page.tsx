@@ -283,58 +283,58 @@ export default function Home() {
   return (
     <div className="flex min-h-screen w-full flex-col items-center">
       {step === 'landing' ? (
-        <div className="w-full animated-gradient-background">
-          <div className="relative z-10">
-            <LandingHero onStart={handleStartUpload} />
-            <StatsSection />
-            <FeaturesSection />
-          </div>
-        </div>
+        <>
+          <LandingHero onStart={handleStartUpload} />
+          <StatsSection />
+          <FeaturesSection />
+        </>
       ) : (
-        <div className="container mx-auto flex w-full max-w-7xl flex-1 flex-col items-center px-4 py-8 md:py-12">
-          <div className="w-full space-y-8">
-            {step !== 'upload' &&
-              step !== 'processing' &&
-              step !== 'generating' && (
-                <StepIndicator steps={STEPS} currentStep={currentStepIndex} />
-              )}
+        <div className="w-full bg-background">
+            <div className="container mx-auto flex w-full max-w-7xl flex-1 flex-col items-center px-4 py-8 md:py-12">
+              <div className="w-full space-y-8">
+                {step !== 'upload' &&
+                  step !== 'processing' &&
+                  step !== 'generating' && (
+                    <StepIndicator steps={STEPS} currentStep={currentStepIndex} />
+                  )}
 
-            {step === 'upload' && <UploadStep onUpload={handleUpload} />}
-            {step === 'processing' && (
-              <GenerateStep
-                progress={processingProgress}
-                title="Processing your PDF..."
-                description="Extracting pages from your document. This might take a moment."
-              />
-            )}
-            {step === 'reorder' && (
-              <ReorderStep
-                pages={pages}
-                setPages={setPages}
-                onNext={() => setStep('customize')}
-                onBack={handleStartOver}
-              />
-            )}
-            {step === 'customize' && (
-              <CustomizeStep
-                pages={pages}
-                customization={customization}
-                setCustomization={setCustomization}
-                onGenerate={handleGenerate}
-                onBack={() => setStep('reorder')}
-              />
-            )}
-            {step === 'generating' && (
-              <GenerateStep
-                progress={generationProgress}
-                title="Generating your PDF..."
-                description="Please wait while we prepare your optimized document. This might take a moment."
-              />
-            )}
-            {step === 'download' && (
-              <DownloadStep generatedPdf={generatedPdf} onStartOver={handleStartOver} />
-            )}
-          </div>
+                {step === 'upload' && <UploadStep onUpload={handleUpload} />}
+                {step === 'processing' && (
+                  <GenerateStep
+                    progress={processingProgress}
+                    title="Processing your PDF..."
+                    description="Extracting pages from your document. This might take a moment."
+                  />
+                )}
+                {step === 'reorder' && (
+                  <ReorderStep
+                    pages={pages}
+                    setPages={setPages}
+                    onNext={() => setStep('customize')}
+                    onBack={handleStartOver}
+                  />
+                )}
+                {step === 'customize' && (
+                  <CustomizeStep
+                    pages={pages}
+                    customization={customization}
+                    setCustomization={setCustomization}
+                    onGenerate={handleGenerate}
+                    onBack={() => setStep('reorder')}
+                  />
+                )}
+                {step === 'generating' && (
+                  <GenerateStep
+                    progress={generationProgress}
+                    title="Generating your PDF..."
+                    description="Please wait while we prepare your optimized document. This might take a moment."
+                  />
+                )}
+                {step === 'download' && (
+                  <DownloadStep generatedPdf={generatedPdf} onStartOver={handleStartOver} />
+                )}
+              </div>
+            </div>
         </div>
       )}
     </div>
