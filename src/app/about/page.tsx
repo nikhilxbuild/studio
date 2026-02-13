@@ -23,7 +23,7 @@ export default function AboutPage() {
   return (
     <>
       <Header />
-      <div className="container mx-auto max-w-5xl py-12 px-4 md:py-20">
+      <div className="container mx-auto max-w-5xl px-4 pt-28 pb-12 md:pt-32 md:pb-20">
       <div className="space-y-12">
           <div className="text-center">
           <h1 className="text-4xl font-bold tracking-tight sm:text-5xl">About EduSlide</h1>

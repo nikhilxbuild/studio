@@ -17,7 +17,7 @@ export function Header() {
   const pathname = usePathname();
 
   return (
-    <header className="fixed top-0 z-50 w-full bg-background/50 backdrop-blur-lg">
+    <header className="absolute top-0 z-50 w-full">
       <div className="container mx-auto flex h-16 max-w-7xl items-center justify-center px-4 relative">
         <div className="flex items-center gap-2">
           <a href="/" className="flex items-center gap-2">

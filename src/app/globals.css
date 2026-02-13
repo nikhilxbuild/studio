@@ -72,7 +72,7 @@
   }
   .animated-gradient-background {
     position: relative;
-    overflow: hidden;
+    overflow-x: hidden;
   }
   .animated-gradient-background::before {
     content: "";

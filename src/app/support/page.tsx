@@ -16,7 +16,7 @@ export default function SupportPage() {
   return (
     <>
       <Header />
-      <div className="container mx-auto max-w-4xl py-12 px-4 md:py-20">
+      <div className="container mx-auto max-w-4xl px-4 pt-28 pb-12 md:pt-32 md:pb-20">
           <div className="space-y-12 text-center">
               <div>
               <h1 className="text-4xl font-bold tracking-tight sm:text-5xl">Support EduSlide</h1>
