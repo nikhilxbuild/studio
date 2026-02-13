@@ -74,14 +74,18 @@ const StatsSection = () => {
   return (
     <section className="w-full py-12">
       <div className="container mx-auto px-4 md:px-6">
-        <div className="grid gap-8 rounded-lg border border-white/10 bg-card/40 p-8 backdrop-blur-sm sm:grid-cols-2 lg:grid-cols-4">
-          {stats.map((stat, index) => (
-            <div key={index} className="flex flex-col items-center gap-2 text-center">
-              <p className="text-2xl font-bold text-primary">{stat.value}</p>
-              <p className="text-sm font-medium text-muted-foreground">{stat.label}</p>
-            </div>
-          ))}
-        </div>
+        <Card className="glassmorphic">
+            <CardContent className="p-8">
+                <div className="grid gap-8 sm:grid-cols-2 lg:grid-cols-4">
+                {stats.map((stat, index) => (
+                    <div key={index} className="flex flex-col items-center gap-2 text-center">
+                    <p className="text-2xl font-bold text-primary">{stat.value}</p>
+                    <p className="text-sm font-medium text-muted-foreground">{stat.label}</p>
+                    </div>
+                ))}
+                </div>
+            </CardContent>
+        </Card>
       </div>
     </section>
   );
