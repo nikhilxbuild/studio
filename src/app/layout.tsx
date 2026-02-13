@@ -1,7 +1,6 @@
 import type { Metadata } from 'next';
 import './globals.css';
 import { Toaster } from '@/components/ui/toaster';
-import { Header } from '@/components/layout/header';
 import { Footer } from '@/components/layout/footer';
 import { MobileNav } from '@/components/layout/mobile-nav';
 
@@ -30,7 +29,6 @@ export default function RootLayout({
         />
       </head>
       <body className="font-body antialiased animated-gradient-background text-foreground pb-20 md:pb-0">
-        <Header />
         <main className="min-h-screen relative z-10">{children}</main>
         <MobileNav />
         <Footer />

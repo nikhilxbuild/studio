@@ -1,7 +1,7 @@
 'use client';
 
 import Link from 'next/link';
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import {
   ArrowRight,
   PlayCircle,
@@ -27,6 +27,7 @@ import { StepIndicator } from '@/components/app/step-indicator';
 import { useToast } from '@/hooks/use-toast';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Header } from '@/components/layout/header';
 
 if (typeof window !== 'undefined') {
   pdfjsLib.GlobalWorkerOptions.workerSrc = `//unpkg.com/pdfjs-dist@${pdfjsLib.version}/build/pdf.worker.min.mjs`;
@@ -154,13 +155,13 @@ const FeaturesSection = () => {
 
 export default function Home() {
   const [step, setStep] = useState<
-    | 'landing'
+    'landing'
     | 'upload'
+    | 'processing'
     | 'reorder'
     | 'customize'
     | 'generating'
     | 'download'
-    | 'processing'
   >('landing');
   const [pages, setPages] = useState<Page[]>([]);
   const [customization, setCustomization] = useState<CustomizationOptions>({
@@ -180,6 +181,12 @@ export default function Home() {
   const [generationProgress, setGenerationProgress] = useState(0);
   const [generatedPdf, setGeneratedPdf] = useState<Uint8Array | null>(null);
   const { toast } = useToast();
+
+  useEffect(() => {
+    if (step !== 'landing') {
+      window.scrollTo(0, 0);
+    }
+  }, [step]);
 
   const handleStartUpload = () => {
     setStep('upload');
@@ -281,7 +288,8 @@ export default function Home() {
   }, [step]);
 
   return (
-    <div className="flex min-h-screen w-full flex-col items-center">
+    <div className="flex min-h-screen w-full flex-col">
+      {step === 'landing' && <Header />}
       {step === 'landing' ? (
         <>
           <LandingHero onStart={handleStartUpload} />
@@ -289,8 +297,8 @@ export default function Home() {
           <FeaturesSection />
         </>
       ) : (
-        <div className="w-full bg-background">
-            <div className="container mx-auto flex w-full max-w-7xl flex-1 flex-col items-center px-4 py-8 md:py-12">
+        <div className="w-full">
+            <div className="container mx-auto flex w-full max-w-7xl flex-col items-center px-4 py-8 md:py-12">
               <div className="w-full space-y-8">
                 {step !== 'upload' &&
                   step !== 'processing' &&

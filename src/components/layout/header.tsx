@@ -43,7 +43,7 @@ export function Header() {
 
   return (
     <header className={cn(
-        "sticky top-0 z-50 w-full bg-background/80 backdrop-blur-lg transition-transform duration-300",
+        "fixed top-0 z-50 w-full bg-background/50 backdrop-blur-lg transition-transform duration-300",
         isHidden && "-translate-y-full"
       )}>
       <div className="container mx-auto flex h-16 max-w-7xl items-center justify-center px-4 relative">
