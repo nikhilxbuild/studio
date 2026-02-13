@@ -23,7 +23,6 @@
     --border: 215 28% 17%;
     --input: 215 28% 17%;
     --ring: 256 90% 66%;
-    --radius: 0.5rem;
   }
 
   .dark {
@@ -52,6 +51,9 @@
 @layer base {
   * {
     @apply border-border;
+  }
+  html {
+    scroll-behavior: smooth;
   }
   html, body {
     @apply overflow-x-hidden;
