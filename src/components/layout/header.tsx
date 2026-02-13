@@ -4,6 +4,7 @@ import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import Image from 'next/image';
 import { cn } from '@/lib/utils';
+import { useState, useEffect } from 'react';
 
 const navLinks = [
   { href: '/', label: 'Home' },
@@ -15,20 +16,40 @@ const navLinks = [
 
 export function Header() {
   const pathname = usePathname();
+  const [isHidden, setIsHidden] = useState(false);
+
+  useEffect(() => {
+    let ticking = false;
+    const handleScroll = () => {
+      if (!ticking) {
+        window.requestAnimationFrame(() => {
+          setIsHidden(window.scrollY > 10);
+          ticking = false;
+        });
+        ticking = true;
+      }
+    };
+
+    window.addEventListener('scroll', handleScroll, { passive: true });
+    return () => {
+      window.removeEventListener('scroll', handleScroll);
+    };
+  }, []);
 
   return (
     <header className={cn(
-        "fixed top-0 z-50 w-full bg-transparent"
+        "fixed top-0 z-50 w-full bg-transparent transition-transform duration-300 ease-in-out",
+        isHidden ? '-translate-y-full' : 'translate-y-0'
     )}>
-      <div className="container relative mx-auto flex h-16 max-w-7xl items-center justify-center px-4">
+      <div className="container relative mx-auto flex h-24 max-w-7xl items-center justify-center px-4">
         <div className="flex items-center">
           <Link href="/">
             <Image
-              src="https://drive.google.com/uc?id=1dAaKjH8Gtc7DVXRj_foxzdc5gOnjp6cU"
+              src="https://drive.google.com/uc?export=view&id=1dAaKjH8Gtc7DVXRj_foxzdc5gOnjp6cU"
               alt="EduSlide Logo"
               width={225}
               height={48}
-              className="h-10 w-auto md:h-12"
+              className="h-14 w-auto md:h-16"
               priority
             />
           </Link>

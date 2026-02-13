@@ -3,7 +3,6 @@
 import Link from 'next/link';
 import { Twitter, Instagram, Youtube, Send } from 'lucide-react';
 import type { ComponentProps } from 'react';
-import Image from 'next/image';
 
 const DiscordIcon = (props: ComponentProps<'svg'>) => (
     <svg role="img" fill="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg" {...props}>
@@ -33,15 +32,7 @@ export function Footer() {
     <footer className="w-full bg-transparent z-10">
       <div className="container mx-auto max-w-7xl px-4 py-4 md:py-6">
         <div className="flex flex-col items-center gap-4 text-center">
-            <Link href="/" className="opacity-80 transition-opacity hover:opacity-100">
-              <Image
-                src="https://drive.google.com/uc?id=1dAaKjH8Gtc7DVXRj_foxzdc5gOnjp6cU"
-                alt="EduSlide Logo"
-                width={150}
-                height={32}
-                className="h-8 w-auto"
-              />
-            </Link>
+            
             <div className="flex flex-wrap items-center justify-center gap-x-6 gap-y-2 text-sm">
                 {footerLinks.map((link) => (
                     <Link key={link.href} href={link.href} className="text-muted-foreground transition-colors hover:text-primary">
