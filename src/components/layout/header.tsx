@@ -26,7 +26,7 @@ export function Header() {
             alt="EduSlide Logo"
             width={300}
             height={64}
-            className="h-16 w-auto md:h-[5.5rem]"
+            className="h-16 w-auto cursor-pointer md:h-[5.5rem]"
             priority
           />
         </Link>
