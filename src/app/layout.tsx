@@ -29,9 +29,9 @@ export default function RootLayout({
           rel="stylesheet"
         />
       </head>
-      <body className="font-body antialiased bg-background text-foreground">
+      <body className="font-body antialiased bg-background text-foreground pb-20 md:pb-0">
         <Header />
-        <main className="min-h-screen pb-16 md:pb-0">{children}</main>
+        <main className="min-h-screen">{children}</main>
         <MobileNav />
         <Footer />
         <Toaster />
