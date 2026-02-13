@@ -20,18 +20,14 @@ export function GenerateStep({
       <Card className="w-full max-w-lg">
         <CardContent className="p-8">
           <div className="space-y-4">
-            <div className="flex items-center justify-center gap-3">
+            <div className="flex items-center justify-center">
               <Image
                 src="/eduslide-logo.png"
-                alt="EduSlide AI Logo"
-                width={40}
-                height={40}
-                className="h-10 w-auto"
+                alt="EduSlide Logo"
+                width={225}
+                height={48}
+                className="h-12 w-auto"
               />
-              <span className="text-2xl font-bold tracking-tight">
-                <span className="text-foreground">EduSlide</span>
-                <span className="text-primary">AI</span>
-              </span>
             </div>
             <h2 className="pt-4 text-2xl font-bold tracking-tight">{title}</h2>
             <p className="text-muted-foreground">{description}</p>
