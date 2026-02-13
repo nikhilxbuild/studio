@@ -51,9 +51,10 @@
 @layer base {
   * {
     @apply border-border;
+    box-sizing: border-box;
   }
   html {
-    scroll-behavior: smooth;
+    scroll-behavior: auto;
   }
   html, body {
     @apply overflow-x-hidden;
@@ -100,6 +101,12 @@
       radial-gradient(ellipse at 30% 70%, hsl(240 90% 66% / 0.15) 0%, transparent 50%);
     animation: floating-glow 20s infinite ease-in-out;
     pointer-events: none; /* Make sure it doesn't interfere with clicks */
+  }
+
+  @media (prefers-reduced-motion: reduce), (max-width: 768px) {
+    .animated-gradient-background::after {
+      animation: none;
+    }
   }
 }
 

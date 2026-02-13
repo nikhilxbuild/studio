@@ -4,6 +4,7 @@ import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { Layers } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { useEffect, useState, useRef } from 'react';
 
 const navLinks = [
   { href: '/', label: 'Home' },
@@ -15,11 +16,42 @@ const navLinks = [
 
 export function Header() {
   const pathname = usePathname();
+  const [hidden, setHidden] = useState(false);
+  const lastScrollYRef = useRef(0);
+  const tickingRef = useRef(false);
+
+  useEffect(() => {
+    const handleScroll = () => {
+      const currentScrollY = window.scrollY;
+
+      if (!tickingRef.current) {
+        window.requestAnimationFrame(() => {
+          if (currentScrollY > lastScrollYRef.current && currentScrollY > 100) {
+            setHidden(true);
+          } else {
+            setHidden(false);
+          }
+          lastScrollYRef.current = currentScrollY;
+          tickingRef.current = false;
+        });
+        tickingRef.current = true;
+      }
+    };
+
+    window.addEventListener('scroll', handleScroll, { passive: true });
+
+    return () => {
+      window.removeEventListener('scroll', handleScroll);
+    };
+  }, []);
 
   return (
-    <header className="absolute top-0 z-50 w-full">
+    <header className={cn(
+        "fixed top-0 z-50 w-full bg-background/50 backdrop-blur-lg transition-transform duration-300",
+        hidden ? "-translate-y-full" : "translate-y-0"
+    )}>
       <div className="container mx-auto flex h-16 max-w-7xl items-center justify-center px-4 relative">
-        <div className="flex items-center gap-2">
+        <div className="absolute left-1/2 -translate-x-1/2 flex items-center gap-2">
           <a href="/" className="flex items-center gap-2">
             <Layers className="h-7 w-7 text-primary" />
             <h1 className="text-2xl font-bold tracking-tight">EduSlide</h1>
