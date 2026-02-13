@@ -28,8 +28,8 @@ export default function RootLayout({
           rel="stylesheet"
         />
       </head>
-      <body className="font-body antialiased animated-gradient-background text-foreground flex flex-col min-h-screen">
-        <main className="relative z-10 flex-grow pb-20 md:pb-0">{children}</main>
+      <body className="font-body antialiased animated-gradient-background text-foreground">
+        <main className="relative z-10 pb-20 md:pb-0">{children}</main>
         <MobileNav />
         <Footer />
         <Toaster />
