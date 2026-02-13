@@ -33,14 +33,18 @@ export function Footer() {
     <footer className="w-full bg-transparent z-10">
       <div className="container mx-auto max-w-7xl px-4 py-4 md:py-6">
         <div className="flex flex-col items-center gap-4 text-center">
-            <Link href="/">
+            <Link href="/" className="flex items-center gap-2 opacity-80 transition-opacity hover:opacity-100">
               <Image
                 src="/eduslide-logo.png"
                 alt="EduSlide AI Logo"
-                width={160}
-                height={30}
-                className="h-8 w-auto opacity-80 transition-opacity hover:opacity-100"
+                width={32}
+                height={32}
+                className="h-8 w-auto"
               />
+              <span className="text-lg font-semibold tracking-tight">
+                  <span className="text-muted-foreground">EduSlide</span>
+                  <span className="text-primary">AI</span>
+              </span>
             </Link>
             <div className="flex flex-wrap items-center justify-center gap-x-6 gap-y-2 text-sm">
                 {footerLinks.map((link) => (
