@@ -171,18 +171,40 @@ export async function generatePdf(
             break;
           case 'invert':
             for (let k = 0; k < data.length; k += 4) {
-              // 1. Soft invert as per user's formula
-              let r = 255 - data[k] * 0.85;
-              let g = 255 - data[k + 1] * 0.85;
-              let b = 255 - data[k + 2] * 0.85;
-      
-              // 2. Desaturate by 25%
-              const desaturationAmount = 0.25;
-              const gray = r * 0.299 + g * 0.587 + b * 0.114;
-              
-              data[k] = r * (1 - desaturationAmount) + gray * desaturationAmount;
-              data[k + 1] = g * (1 - desaturationAmount) + gray * desaturationAmount;
-              data[k + 2] = b * (1 - desaturationAmount) + gray * desaturationAmount;
+                let r = data[k];
+                let g = data[k + 1];
+                let b = data[k + 2];
+
+                // Step 3 (from prompt): Increase brightness by ~25%
+                r = Math.min(255, r * 1.25);
+                g = Math.min(255, g * 1.25);
+                b = Math.min(255, b * 1.25);
+
+                // Step 4 (from prompt): Desaturate by 40%
+                const desaturationAmount = 0.40;
+                const gray = r * 0.299 + g * 0.587 + b * 0.114;
+                r = r * (1 - desaturationAmount) + gray * desaturationAmount;
+                g = g * (1 - desaturationAmount) + gray * desaturationAmount;
+                b = b * (1 - desaturationAmount) + gray * desaturationAmount;
+
+                // Step 5 (from prompt): Soft invert only dark areas
+                const lum = 0.299 * r + 0.587 * g + 0.114 * b;
+                if (lum < 80) {
+                    r = 255 - r * 0.7;
+                    g = 255 - g * 0.7;
+                    b = 255 - b * 0.7;
+                }
+                
+                // Step 6 (from prompt): Background whitening
+                if (r > 220 && g > 220 && b > 220) {
+                    r = 245;
+                    g = 245;
+                    b = 245;
+                }
+                
+                data[k] = r;
+                data[k + 1] = g;
+                data[k + 2] = b;
             }
             break;
         }

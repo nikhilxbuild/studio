@@ -248,7 +248,7 @@ export default function Home() {
           const newPages: Page[] = [];
 
           // Use a higher scale for better resolution, closer to 300 DPI
-          const scale = 3.0;
+          const scale = 2.5;
 
           for (let i = 1; i <= pdf.numPages; i++) {
             const page = await pdf.getPage(i);
