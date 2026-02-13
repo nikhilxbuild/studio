@@ -4,7 +4,7 @@ import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { Layers } from 'lucide-react';
 import { cn } from '@/lib/utils';
-import { useEffect, useState, useRef } from 'react';
+import { useEffect, useState } from 'react';
 
 const navLinks = [
   { href: '/', label: 'Home' },
@@ -17,25 +17,10 @@ const navLinks = [
 export function Header() {
   const pathname = usePathname();
   const [hidden, setHidden] = useState(false);
-  const lastScrollYRef = useRef(0);
-  const tickingRef = useRef(false);
 
   useEffect(() => {
     const handleScroll = () => {
-      const currentScrollY = window.scrollY;
-
-      if (!tickingRef.current) {
-        window.requestAnimationFrame(() => {
-          if (currentScrollY > lastScrollYRef.current && currentScrollY > 100) {
-            setHidden(true);
-          } else {
-            setHidden(false);
-          }
-          lastScrollYRef.current = currentScrollY;
-          tickingRef.current = false;
-        });
-        tickingRef.current = true;
-      }
+      setHidden(window.scrollY > 50);
     };
 
     window.addEventListener('scroll', handleScroll, { passive: true });
@@ -47,7 +32,7 @@ export function Header() {
 
   return (
     <header className={cn(
-        "fixed top-0 z-50 w-full bg-background/50 backdrop-blur-lg transition-transform duration-300",
+        "fixed top-0 z-50 w-full bg-transparent backdrop-blur-lg transition-transform duration-300",
         hidden ? "-translate-y-full" : "translate-y-0"
     )}>
       <div className="container mx-auto flex h-16 max-w-7xl items-center justify-center px-4 relative">

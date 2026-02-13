@@ -57,7 +57,7 @@ const LandingHero = ({ onStart }: { onStart: () => void }) => (
         </p>
         <div className="mt-8 flex flex-col sm:flex-row justify-center gap-4">
           <Button size="lg" onClick={onStart}>
-            Get Started <ArrowRight className="ml-2 h-5 w-5" />
+            Upload PDF <ArrowRight className="ml-2 h-5 w-5" />
           </Button>
         </div>
       </div>
