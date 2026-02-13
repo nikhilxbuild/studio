@@ -22,7 +22,7 @@ export function GenerateStep({
           <div className="space-y-4">
             <div className="flex items-center justify-center">
               <Image
-                src="/eduslide-logo.png"
+                src="https://drive.google.com/uc?id=1GEXx01Voj74CdojCPrCCG5Sdl0l5OnxZ"
                 alt="EduSlide Logo"
                 width={225}
                 height={48}

@@ -24,7 +24,7 @@ export function Header() {
         <div className="flex items-center">
           <Link href="/">
             <Image
-              src="/eduslide-logo.png"
+              src="https://drive.google.com/uc?id=1GEXx01Voj74CdojCPrCCG5Sdl0l5OnxZ"
               alt="EduSlide Logo"
               width={225}
               height={48}

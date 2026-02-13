@@ -35,7 +35,7 @@ export function Footer() {
         <div className="flex flex-col items-center gap-4 text-center">
             <Link href="/" className="opacity-80 transition-opacity hover:opacity-100">
               <Image
-                src="/eduslide-logo.png"
+                src="https://drive.google.com/uc?id=1GEXx01Voj74CdojCPrCCG5Sdl0l5OnxZ"
                 alt="EduSlide Logo"
                 width={150}
                 height={32}
