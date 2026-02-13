@@ -13,13 +13,14 @@ import {
 } from 'lucide-react';
 
 import type { Page, CustomizationOptions } from '@/lib/types';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Slider } from '@/components/ui/slider';
 import { Label } from '@/components/ui/label';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { Switch } from '@/components/ui/switch';
 import { Separator } from '@/components/ui/separator';
+import { NUpMockPreview } from './n-up-preview';
 
 interface CustomizeStepProps {
   pages: Page[];
@@ -62,7 +63,7 @@ export function CustomizeStep({
             Customize Your Layout
           </h2>
           <p className="text-muted-foreground">
-            Fine-tune the layout to fit your needs. Your settings are summarized
+            Fine-tune the layout to fit your needs. Your settings are previewed
             on the right.
           </p>
         </div>
@@ -251,36 +252,15 @@ export function CustomizeStep({
               </div>
             </div>
           </div>
-          {/* Summary */}
+          {/* Preview */}
           <div className="md:col-span-1">
-            <Card className="sticky top-24 bg-secondary">
-              <CardHeader>
-                <CardTitle>Layout Summary</CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-4 text-sm">
-                <div className="flex justify-between">
-                  <span className="text-muted-foreground">Selected Pages</span>
-                  <span className="font-semibold">{selectedPagesCount}</span>
-                </div>
-                <div className="flex justify-between">
-                  <span className="text-muted-foreground">Layout</span>
-                  <span className="font-semibold">
-                    {rows} &times; {cols}
-                  </span>
-                </div>
-                <div className="flex justify-between">
-                  <span className="text-muted-foreground">Orientation</span>
-                  <span className="font-semibold capitalize">
-                    {customization.orientation}
-                  </span>
-                </div>
-                <Separator />
-                <div className="flex justify-between text-base">
-                  <span className="text-muted-foreground">Total Sheets</span>
-                  <span className="font-bold text-primary">{sheetsCount}</span>
-                </div>
-              </CardContent>
-            </Card>
+            <NUpMockPreview
+              rows={customization.rows}
+              cols={customization.cols}
+              orientation={customization.orientation}
+              selectedPagesCount={selectedPagesCount}
+              sheetsCount={sheetsCount}
+            />
           </div>
         </div>
 
