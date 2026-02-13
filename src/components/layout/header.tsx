@@ -18,7 +18,7 @@ export function Header() {
   const pathname = usePathname();
 
   return (
-    <header className="relative z-10 w-full py-6">
+    <header className="relative z-10 w-full py-5">
       <div className="container mx-auto flex max-w-7xl items-center justify-center px-4">
         <Link href="/">
           <Image
@@ -26,7 +26,7 @@ export function Header() {
             alt="EduSlide Logo"
             width={300}
             height={64}
-            className="h-12 w-auto md:h-16"
+            className="h-14 w-auto md:h-[4.5rem]"
             priority
           />
         </Link>
