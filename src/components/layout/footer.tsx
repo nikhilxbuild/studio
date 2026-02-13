@@ -34,7 +34,7 @@ export function Footer() {
         <div className="flex flex-col items-center gap-4 text-center">
             <div className="flex flex-wrap items-center justify-center gap-x-6 gap-y-2 text-sm">
                 {footerLinks.map((link) => (
-                    <Link key={link.label} href={link.href} className="text-muted-foreground transition-colors hover:text-primary">
+                    <Link key={link.href} href={link.href} className="text-muted-foreground transition-colors hover:text-primary">
                         {link.label}
                     </Link>
                 ))}
@@ -42,7 +42,7 @@ export function Footer() {
 
             <div className="flex items-center gap-4">
                 {socialLinks.map((social) => (
-                    <a key={social.label} href={social.href} target="_blank" rel="noopener noreferrer" className="text-muted-foreground transition-colors hover:text-primary">
+                    <a key={social.href} href={social.href} target="_blank" rel="noopener noreferrer" className="text-muted-foreground transition-colors hover:text-primary">
                         <social.icon className="h-5 w-5" />
                         <span className="sr-only">{social.label}</span>
                     </a>

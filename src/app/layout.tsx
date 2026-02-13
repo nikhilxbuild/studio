@@ -29,9 +29,11 @@ export default function RootLayout({
         />
       </head>
       <body className="font-body antialiased animated-gradient-background text-foreground">
-        <main className="relative z-10 pb-20 md:pb-0">{children}</main>
+        <div className="flex min-h-screen flex-col pb-16 md:pb-0">
+            <main className="flex-grow relative z-10">{children}</main>
+            <Footer />
+        </div>
         <MobileNav />
-        <Footer />
         <Toaster />
       </body>
     </html>
