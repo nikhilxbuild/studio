@@ -24,14 +24,14 @@ export function MobileNav() {
             key={link.href}
             href={link.href}
             className={cn(
-              'group flex h-[56px] w-full flex-col items-center justify-center overflow-hidden rounded-full text-center text-xs font-medium transition-all duration-300',
+              'group flex h-[56px] w-full flex-col items-center justify-center rounded-full text-center text-[11px] font-medium transition-all duration-300',
               pathname === link.href
                 ? 'bg-gradient-to-t from-primary/20 to-primary/5 text-primary shadow-[0_0_15px_-5px_hsl(var(--primary))]'
                 : 'text-muted-foreground hover:bg-white/10'
             )}
           >
             <link.icon className="h-5 w-5" />
-            <span className="mt-1">{link.label}</span>
+            <span className="mt-1 leading-tight">{link.label}</span>
           </Link>
         ))}
       </div>
