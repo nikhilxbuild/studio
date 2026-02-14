@@ -109,9 +109,9 @@ export async function generatePdf(
       const sourceWidth = image.width * (1 - cropAmount * 2);
       const sourceHeight = image.height * (1 - cropAmount * 2);
 
-      // Determine optimal canvas size for embedding to reduce file size.
-      // Aim for ~200 DPI in the final PDF cell.
-      const targetEmbedDPI = 200;
+      // Determine optimal canvas size for embedding for high quality.
+      // Aim for 300 DPI in the final PDF cell for print-readiness.
+      const targetEmbedDPI = 300;
       const embedScaleFactor = targetEmbedDPI / 72; // PDF points are 1/72 inch
       const targetCellPixelWidth = cellWidth * embedScaleFactor;
       const targetCellPixelHeight = cellHeight * embedScaleFactor;
@@ -158,41 +158,23 @@ export async function generatePdf(
           let g = data[k + 1];
           let b = data[k + 2];
 
-          // 1. Apply Soft Invert if enabled
-          if (colorMode.invert) {
-            // Soft Invert
-            r = 255 - r * 0.75;
-            g = 255 - g * 0.75;
-            b = 255 - b * 0.75;
-
-            // Desaturate 25%
-            const gray = r * 0.299 + g * 0.587 + b * 0.114;
-            const desaturation = 0.25;
-            r = r * (1 - desaturation) + gray * desaturation;
-            g = g * (1 - desaturation) + gray * desaturation;
-            b = b * (1 - desaturation) + gray * desaturation;
-            
-            // Brightness +10%
-            r = Math.min(255, r * 1.1);
-            g = Math.min(255, g * 1.1);
-            b = Math.min(255, b * 1.1);
-          }
-
-          // 2. Apply Grayscale if enabled
-          if (colorMode.grayscale) {
-            const avg = (r + g + b) / 3;
-            r = avg;
-            g = avg;
-            b = avg;
-          }
-
-          // 3. Apply B&W if enabled
+          // B&W is a final-pass filter, overriding others
           if (colorMode.bw) {
-            const avg = (r + g + b) / 3;
-            const color = avg > 128 ? 255 : 0;
-            r = color;
-            g = color;
-            b = color;
+            const luma = 0.299 * r + 0.587 * g + 0.114 * b;
+            const finalColor = luma > 128 ? 255 : 0;
+            data[k] = data[k + 1] = data[k + 2] = finalColor;
+            continue; // Skip other filters if B&W
+          }
+          
+          if (colorMode.grayscale) {
+            const luma = 0.299 * r + 0.587 * g + 0.114 * b;
+            r = g = b = luma;
+          }
+
+          if (colorMode.invert) {
+            r = 255 - r;
+            g = 255 - g;
+            b = 255 - b;
           }
           
           data[k] = r;
@@ -202,12 +184,12 @@ export async function generatePdf(
         ctx.putImageData(imageData, 0, 0);
       }
 
-      // Use JPEG for smaller file size
+      // Use PNG for lossless quality
       const processedImageBytes = await fetch(
-        canvas.toDataURL('image/jpeg', 0.85)
+        canvas.toDataURL('image/png')
       ).then((res) => res.arrayBuffer());
 
-      const pdfImage = await newPdfDoc.embedJpg(processedImageBytes);
+      const pdfImage = await newPdfDoc.embedPng(processedImageBytes);
 
       const { width: imgWidth, height: imgHeight } = pdfImage.scale(1);
       const scale = Math.min(cellWidth / imgWidth, cellHeight / imgHeight);
