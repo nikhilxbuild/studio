@@ -130,29 +130,25 @@ async function generateHighQualityInvertPdf(
       const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
       const data = imageData.data;
       
-      const backgroundLuminanceThreshold = 50; // Treat pixels darker than this as background
-
       for (let k = 0; k < data.length; k += 4) {
         const r = data[k];
         const g = data[k + 1];
         const b = data[k + 2];
         
-        const luma = 0.299 * r + 0.587 * g + 0.114 * b;
-
-        // If the pixel is dark (part of the background in a dark-mode PDF), force it to pure white
-        if (luma < backgroundLuminanceThreshold) {
+        // If pixel is near-white, force to pure white.
+        if (r > 235 && g > 235 && b > 235) {
           data[k] = 255;
           data[k + 1] = 255;
           data[k + 2] = 255;
         } else {
-          // Otherwise, it's foreground content. Invert it.
+          // Otherwise, invert the content pixel.
           let invR = 255 - r;
           let invG = 255 - g;
           let invB = 255 - b;
 
           // Apply mild rebalance to prevent heavy cyan/blue cast on the inverted content
-          invG = invG * 0.99;
-          invB = invB * 0.97;
+          invG = invG * 0.98; // Reduce green slightly
+          invB = invB * 0.95; // Reduce blue slightly
           
           data[k] = invR;
           data[k + 1] = invG;
@@ -261,7 +257,7 @@ async function generateHighQualityBWPdf(
       const canvas = document.createElement('canvas');
       canvas.width = finalCanvasWidth;
       canvas.height = finalCanvasHeight;
-      const ctx = canvas.getContext('2d', { colorSpace: 'srgb' });
+      const ctx = canvas.getContext('2d', { colorSpace: 'srgb', willReadFrequently: true });
       if (!ctx) throw new Error('Could not get canvas context');
       
       ctx.fillStyle = 'white';
@@ -277,18 +273,15 @@ async function generateHighQualityBWPdf(
 
       const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
       const data = imageData.data;
-      const contrast = 12.75; // Approx +5%
-      const contrastFactor = (259 * (contrast + 255)) / (255 * (259 - contrast));
       
       for (let k = 0; k < data.length; k += 4) {
-        // Luma-based grayscale conversion
+        // Step 2: True Grayscale
         const luma = 0.299 * data[k] + 0.587 * data[k + 1] + 0.114 * data[k + 2];
         
-        let contrastedLuma = contrastFactor * (luma - 128) + 128;
-        contrastedLuma = Math.max(0, Math.min(255, contrastedLuma));
-        
-        // Thresholding for pure B&W
-        const finalValue = contrastedLuma < 128 ? 0 : 255;
+        // Step 3: Adaptive Threshold (Binarization)
+        // A threshold of 150 provides a good balance for converting text to black while cleaning up the background.
+        const threshold = 150;
+        const finalValue = luma < threshold ? 0 : 255;
         
         data[k] = finalValue;
         data[k + 1] = finalValue;
@@ -296,8 +289,8 @@ async function generateHighQualityBWPdf(
       }
       ctx.putImageData(imageData, 0, 0);
 
-      const processedImageBytes = await fetch(canvas.toDataURL('image/jpeg', 0.95)).then((res) => res.arrayBuffer());
-      const pdfImage = await newPdfDoc.embedJpg(processedImageBytes);
+      const processedImageBytes = await fetch(canvas.toDataURL('image/png')).then((res) => res.arrayBuffer());
+      const pdfImage = await newPdfDoc.embedPng(processedImageBytes);
 
       const { width: imgWidth, height: imgHeight } = pdfImage.scale(1);
       const scale = Math.min(cellWidth / imgWidth, cellHeight / imgHeight);
