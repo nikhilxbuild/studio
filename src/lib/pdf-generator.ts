@@ -175,30 +175,19 @@ async function generateHighQualityInvertPdf(
       const data = imageData.data;
       
       for (let k = 0; k < data.length; k += 4) {
-        const r = data[k];
-        const g = data[k + 1];
-        const b = data[k + 2];
-
-        // Background Protection: If pixel is near-white, force it to pure white.
-        if (r > 235 && g > 235 && b > 235) {
+        // Convert to HSL, invert lightness, preserve hue and saturation
+        let [h, s, l] = rgbToHsl(data[k], data[k + 1], data[k + 2]);
+        
+        l = 1.0 - l; // Invert lightness
+        
+        // Threshold to force near-white to pure white for a clean background
+        if (l > 0.95) { // Using 95% as a robust threshold for "near-white"
           data[k] = 255;
           data[k + 1] = 255;
           data[k + 2] = 255;
         } else {
-          // Selective Inversion: Convert to HSL, invert lightness, convert back to RGB.
-          let [h, s, l] = rgbToHsl(r, g, b);
-          
-          l = 1.0 - l; // Invert lightness
-          
-          // Apply mild gamma correction for contrast
-          l = Math.pow(l, 1.05);
-
+          // Convert back to RGB
           let [nr, ng, nb] = hslToRgb(h, s, l);
-
-          // Tint control: Mildly reduce blue and green to combat cyan wash
-          ng = Math.min(255, ng * 0.99); // Reduce green by 1%
-          nb = Math.min(255, nb * 0.97); // Reduce blue by 3%
-
           data[k] = nr;
           data[k + 1] = ng;
           data[k + 2] = nb;
