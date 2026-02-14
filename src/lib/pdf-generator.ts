@@ -116,7 +116,7 @@ async function generateHighQualityInvertPdf(
       const canvas = document.createElement('canvas');
       canvas.width = finalCanvasWidth;
       canvas.height = finalCanvasHeight;
-      const ctx = canvas.getContext('2d', { colorSpace: 'srgb' });
+      const ctx = canvas.getContext('2d', { colorSpace: 'srgb', willReadFrequently: true });
       if (!ctx) throw new Error('Could not get canvas context');
       
       const cropAmount = cropBorders ? 0.03 : 0;
@@ -130,18 +130,19 @@ async function generateHighQualityInvertPdf(
       const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
       const data = imageData.data;
       
+      // Selective inversion logic: force background to white, invert content
       for (let k = 0; k < data.length; k += 4) {
         const r = data[k];
         const g = data[k + 1];
         const b = data[k + 2];
         
-        // If pixel is near-white, force to pure white.
+        // If pixel is near-white (background), force to pure white.
         if (r > 235 && g > 235 && b > 235) {
           data[k] = 255;
           data[k + 1] = 255;
           data[k + 2] = 255;
         } else {
-          // Otherwise, invert the content pixel.
+          // Otherwise, it's foreground content. Invert it.
           let invR = 255 - r;
           let invG = 255 - g;
           let invB = 255 - b;
@@ -274,14 +275,10 @@ async function generateHighQualityBWPdf(
       const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
       const data = imageData.data;
       
+      // Binarization logic
       for (let k = 0; k < data.length; k += 4) {
-        // Step 2: True Grayscale
         const luma = 0.299 * data[k] + 0.587 * data[k + 1] + 0.114 * data[k + 2];
-        
-        // Step 3: Adaptive Threshold (Binarization)
-        // A threshold of 150 provides a good balance for converting text to black while cleaning up the background.
-        const threshold = 150;
-        const finalValue = luma < threshold ? 0 : 255;
+        const finalValue = luma < 150 ? 0 : 255;
         
         data[k] = finalValue;
         data[k + 1] = finalValue;
