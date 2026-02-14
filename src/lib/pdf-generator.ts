@@ -130,27 +130,24 @@ async function generateHighQualityInvertPdf(
       const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
       const data = imageData.data;
       
-      // Selective inversion logic: force background to white, invert content
       for (let k = 0; k < data.length; k += 4) {
         const r = data[k];
         const g = data[k + 1];
         const b = data[k + 2];
         
-        // If pixel is near-white (background), force to pure white.
-        if (r > 235 && g > 235 && b > 235) {
+        // Invert the pixel
+        const invR = 255 - r;
+        const invG = 255 - g;
+        const invB = 255 - b;
+
+        // Check if the INVERTED pixel is a light neutral color (likely a converted dark background)
+        if (invR > 220 && invG > 220 && invB > 220) {
+          // If so, force it to pure white
           data[k] = 255;
           data[k + 1] = 255;
           data[k + 2] = 255;
         } else {
-          // Otherwise, it's foreground content. Invert it.
-          let invR = 255 - r;
-          let invG = 255 - g;
-          let invB = 255 - b;
-
-          // Apply mild rebalance to prevent heavy cyan/blue cast on the inverted content
-          invG = invG * 0.98; // Reduce green slightly
-          invB = invB * 0.95; // Reduce blue slightly
-          
+          // Otherwise, use the inverted colors for the foreground
           data[k] = invR;
           data[k + 1] = invG;
           data[k + 2] = invB;
@@ -278,7 +275,9 @@ async function generateHighQualityBWPdf(
       // Binarization logic
       for (let k = 0; k < data.length; k += 4) {
         const luma = 0.299 * data[k] + 0.587 * data[k + 1] + 0.114 * data[k + 2];
-        const finalValue = luma < 150 ? 0 : 255;
+        let finalValue = luma < 150 ? 0 : 255;
+        if (luma > 245) finalValue = 255;
+        if (luma < 40) finalValue = 0;
         
         data[k] = finalValue;
         data[k + 1] = finalValue;
