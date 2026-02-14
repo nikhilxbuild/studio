@@ -1,7 +1,6 @@
 'use client';
 
-import { useState, Suspense } from 'react';
-import dynamic from 'next/dynamic';
+import { useState } from 'react';
 import {
   ArrowRight,
   FileCheck,
@@ -13,12 +12,7 @@ import {
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
-import { GenerateStep } from '@/components/app/generate-step';
-
-// Lazy load the main PDF tool
-const PdfTool = dynamic(() => import('@/components/app/pdf-tool'), {
-  suspense: true,
-});
+import PdfTool from '@/components/app/pdf-tool';
 
 // --- Landing Page Components ---
 
@@ -133,33 +127,16 @@ const FeaturesSection = () => {
   );
 };
 
-// Loading component for Suspense fallback
-const LoadingTool = () => (
-    <div className="w-full">
-        <div className="container mx-auto flex w-full max-w-7xl flex-col items-center px-4 py-8 md:py-12">
-            <GenerateStep 
-                progress={0}
-                title="Loading tool..."
-                description="Getting things ready for you."
-            />
-        </div>
-    </div>
-);
-
-
 export default function Home() {
   const [showTool, setShowTool] = useState(false);
 
   const handleStart = () => {
     setShowTool(true);
+    window.scrollTo({ top: 0, behavior: 'smooth' });
   };
   
   if (showTool) {
-    return (
-        <Suspense fallback={<LoadingTool />}>
-            <PdfTool />
-        </Suspense>
-    );
+    return <PdfTool />;
   }
 
   return (
