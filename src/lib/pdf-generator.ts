@@ -201,7 +201,7 @@ async function generateHighQualityInvertPdf(
         const originalG = data[k + 1];
         const originalB = data[k + 2];
 
-        // White Background Protection: If pixel is very light, snap to pure white
+        // White Background Protection: If original pixel is very light, make the inverted result pure white.
         const originalLuminance = 0.299 * originalR + 0.587 * originalG + 0.114 * originalB;
         if (originalLuminance > 230) {
             data[k] = 255;
@@ -210,13 +210,13 @@ async function generateHighQualityInvertPdf(
             continue; // Skip to next pixel
         }
 
-        // Proper RGB Inversion (per channel)
-        let r = 255 - originalR;
-        let g = 255 - originalG;
-        let b = 255 - originalB;
+        // Invert using HSL to preserve color hues
+        const [h, s, l] = rgbToHsl(originalR, originalG, originalB);
+        const invertedL = 1.0 - l;
+        let [r, g, b] = hslToRgb(h, s, invertedL);
 
         // Cyan/Blue Dominance Correction
-        g *= 0.98; // Reduce green slightly
+        g *= 0.98; // Reduce green slightly to combat cyan
         b *= 0.96; // Reduce blue slightly
 
         // Mild Contrast Boost
