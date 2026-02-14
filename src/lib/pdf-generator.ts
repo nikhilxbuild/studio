@@ -44,6 +44,47 @@ async function generateHighQualityInvertPdf(
   customization: CustomizationOptions,
   setProgress: (progress: number) => void
 ): Promise<Uint8Array> {
+  // Helper functions for HSL conversion, scoped to this function
+  function rgbToHsl(r: number, g: number, b: number): [number, number, number] {
+    r /= 255; g /= 255; b /= 255;
+    const max = Math.max(r, g, b), min = Math.min(r, g, b);
+    let h = 0, s = 0, l = (max + min) / 2;
+
+    if (max !== min) {
+      const d = max - min;
+      s = l > 0.5 ? d / (2 - max - min) : d / (max + min);
+      switch (max) {
+        case r: h = (g - b) / d + (g < b ? 6 : 0); break;
+        case g: h = (b - r) / d + 2; break;
+        case b: h = (r - g) / d + 4; break;
+      }
+      h /= 6;
+    }
+    return [h, s, l];
+  }
+
+  function hslToRgb(h: number, s: number, l: number): [number, number, number] {
+    let r, g, b;
+    if (s === 0) {
+      r = g = b = l;
+    } else {
+      const hue2rgb = (p: number, q: number, t: number) => {
+        if (t < 0) t += 1;
+        if (t > 1) t -= 1;
+        if (t < 1 / 6) return p + (q - p) * 6 * t;
+        if (t < 1 / 2) return q;
+        if (t < 2 / 3) return p + (q - p) * (2 / 3 - t) * 6;
+        return p;
+      };
+      const q = l < 0.5 ? l * (1 + s) : l + s - l * s;
+      const p = 2 * l - q;
+      r = hue2rgb(p, q, h + 1 / 3);
+      g = hue2rgb(p, q, h);
+      b = hue2rgb(p, q, h - 1 / 3);
+    }
+    return [Math.round(r * 255), Math.round(g * 255), Math.round(b * 255)];
+  }
+
   let pagesToProcess = pages.filter((p) => p.selected);
   setProgress(5);
 
@@ -130,7 +171,6 @@ async function generateHighQualityInvertPdf(
 
       ctx.drawImage(image, sourceX, sourceY, sourceWidth, sourceHeight, 0, 0, canvas.width, canvas.height);
       
-      // --- START: SELECTIVE COLOR INVERT LOGIC ---
       const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
       const data = imageData.data;
       
@@ -139,20 +179,32 @@ async function generateHighQualityInvertPdf(
         const g = data[k + 1];
         const b = data[k + 2];
 
-        // If pixel is near-white, force it to pure white to clean the background.
+        // Background Protection: If pixel is near-white, force it to pure white.
         if (r > 235 && g > 235 && b > 235) {
           data[k] = 255;
           data[k + 1] = 255;
           data[k + 2] = 255;
         } else {
-          // Otherwise, invert the color of the content (text, diagrams, etc.)
-          data[k] = 255 - r;
-          data[k + 1] = 255 - g;
-          data[k + 2] = 255 - b;
+          // Selective Inversion: Convert to HSL, invert lightness, convert back to RGB.
+          let [h, s, l] = rgbToHsl(r, g, b);
+          
+          l = 1.0 - l; // Invert lightness
+          
+          // Apply mild gamma correction for contrast
+          l = Math.pow(l, 1.05);
+
+          let [nr, ng, nb] = hslToRgb(h, s, l);
+
+          // Tint control: Mildly reduce blue and green to combat cyan wash
+          ng = Math.min(255, ng * 0.99); // Reduce green by 1%
+          nb = Math.min(255, nb * 0.97); // Reduce blue by 3%
+
+          data[k] = nr;
+          data[k + 1] = ng;
+          data[k + 2] = nb;
         }
       }
       ctx.putImageData(imageData, 0, 0);
-      // --- END: SELECTIVE COLOR INVERT LOGIC ---
 
       const processedImageBytes = await fetch(canvas.toDataURL('image/jpeg', 0.92)).then((res) => res.arrayBuffer());
       const pdfImage = await newPdfDoc.embedJpg(processedImageBytes);
@@ -175,6 +227,7 @@ async function generateHighQualityInvertPdf(
   }
   return await newPdfDoc.save({ useObjectStreams: true });
 }
+
 
 async function generateHighQualityBWPdf(
   pages: Page[],
