@@ -1,3 +1,4 @@
+
 'use client';
 
 import { PDFDocument, PageSizes } from 'pdf-lib';
@@ -44,6 +45,47 @@ async function generateHighQualityInvertPdf(
   customization: CustomizationOptions,
   setProgress: (progress: number) => void
 ): Promise<Uint8Array> {
+  // Helper function for LAB conversion, scoped to this function to ensure isolation.
+  const rgbToLab = (r: number, g: number, b: number) => {
+    // Step 1: sRGB to XYZ
+    let var_R = r / 255;
+    let var_G = g / 255;
+    let var_B = b / 255;
+
+    if (var_R > 0.04045) var_R = Math.pow((var_R + 0.055) / 1.055, 2.4);
+    else var_R = var_R / 12.92;
+    if (var_G > 0.04045) var_G = Math.pow((var_G + 0.055) / 1.055, 2.4);
+    else var_G = var_G / 12.92;
+    if (var_B > 0.04045) var_B = Math.pow((var_B + 0.055) / 1.055, 2.4);
+    else var_B = var_B / 12.92;
+
+    var_R *= 100;
+    var_G *= 100;
+    var_B *= 100;
+
+    const x = var_R * 0.4124 + var_G * 0.3576 + var_B * 0.1805;
+    const y = var_R * 0.2126 + var_G * 0.7152 + var_B * 0.0722;
+    const z = var_R * 0.0193 + var_G * 0.1192 + var_B * 0.9505;
+
+    // Step 2: XYZ to LAB
+    let var_X = x / 95.047;
+    let var_Y = y / 100.0;
+    let var_Z = z / 108.883;
+
+    if (var_X > 0.008856) var_X = Math.pow(var_X, 1 / 3);
+    else var_X = 7.787 * var_X + 16 / 116;
+    if (var_Y > 0.008856) var_Y = Math.pow(var_Y, 1 / 3);
+    else var_Y = 7.787 * var_Y + 16 / 116;
+    if (var_Z > 0.008856) var_Z = Math.pow(var_Z, 1 / 3);
+    else var_Z = 7.787 * var_Z + 16 / 116;
+
+    const l = 116 * var_Y - 16;
+    const a = 500 * (var_X - var_Y);
+    const b_lab = 200 * (var_Y - var_Z);
+
+    return { l, a, b: b_lab };
+  };
+
   let pagesToProcess = pages.filter((p) => p.selected);
   setProgress(5);
 
@@ -130,46 +172,34 @@ async function generateHighQualityInvertPdf(
       const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
       const data = imageData.data;
       
-      // Helper function for HSL conversion, kept in local scope for isolation
-      const rgbToHsl = (r: number, g: number, b: number) => {
-          r /= 255; g /= 255; b /= 255;
-          const max = Math.max(r, g, b), min = Math.min(r, g, b);
-          let h = 0, s = 0, l = (max + min) / 2;
-          if (max !== min) {
-              const d = max - min;
-              s = l > 0.5 ? d / (2 - max - min) : d / (max + min);
-              switch (max) {
-                  case r: h = (g - b) / d + (g < b ? 6 : 0); break;
-                  case g: h = (b - r) / d + 2; break;
-                  case b: h = (r - g) / d + 4; break;
-              }
-              h /= 6;
-          }
-          return { h, s, l };
-      };
-      
       for (let k = 0; k < data.length; k += 4) {
-        const r = data[k];
-        const g = data[k + 1];
-        const b = data[k + 2];
+        const originalR = data[k];
+        const originalG = data[k + 1];
+        const originalB = data[k + 2];
 
-        // Convert ORIGINAL pixel to HSL to detect background
-        const { s, l } = rgbToHsl(r, g, b);
+        // Detect background on ORIGINAL pixel using LAB color space
+        const { l, a, b } = rgbToLab(originalR, originalG, originalB);
+        const chroma = Math.sqrt(a * a + b * b);
 
-        // Check if the ORIGINAL pixel is part of the background.
-        // Background is low saturation (grayish/whitish) and high lightness.
-        const isBackground = s < 0.18 && l > 0.70;
-
-        if (isBackground) {
-            // It's background, force to pure white. DO NOT INVERT.
-            data[k] = 255;
-            data[k + 1] = 255;
-            data[k + 2] = 255;
+        if (l > 92 && chroma < 5) {
+          // This is a background pixel, force to pure white.
+          data[k] = 255;
+          data[k + 1] = 255;
+          data[k + 2] = 255;
         } else {
-            // It's foreground, apply the existing inversion logic.
-            data[k] = 255 - r;
-            data[k + 1] = 255 - g;
-            data[k + 2] = 255 - b;
+          // This is a foreground pixel, apply the "perfect" inversion.
+          // Invert
+          let r = 255 - originalR;
+          let g = 255 - originalG;
+          let b = 255 - originalB;
+
+          // Rebalance to reduce cyan cast
+          g = Math.min(255, g + 8);
+          b = Math.min(255, b + 12);
+          
+          data[k] = r;
+          data[k + 1] = g;
+          data[k + 2] = b;
         }
       }
       ctx.putImageData(imageData, 0, 0);
