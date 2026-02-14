@@ -77,7 +77,7 @@ export default function ToolPage() {
                 const pdf = await pdfjsLib.getDocument(typedarray).promise;
                 const newPagesFromFile: Page[] = [];
                 
-                const scale = 2.5;
+                const scale = 0.5; // Reduced scale for smaller thumbnails
 
                 for (let j = 1; j <= pdf.numPages; j++) {
                   const page = await pdf.getPage(j);
@@ -91,7 +91,7 @@ export default function ToolPage() {
                     await page.render({ canvasContext: context, viewport: viewport }).promise;
                     newPagesFromFile.push({
                       id: pageIdCounter++,
-                      sourceUrl: canvas.toDataURL('image/png'),
+                      sourceUrl: canvas.toDataURL('image/jpeg', 0.75), // Use compressed JPEG
                       sourceHint: `Page ${j} of ${file.name}`,
                       selected: true,
                     });
