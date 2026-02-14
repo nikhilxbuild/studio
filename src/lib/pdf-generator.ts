@@ -131,23 +131,34 @@ async function generateHighQualityInvertPdf(
       const data = imageData.data;
       
       for (let k = 0; k < data.length; k += 4) {
-        const r = data[k];
-        const g = data[k + 1];
-        const b = data[k + 2];
-        
-        // Invert the pixel
-        const invR = 255 - r;
-        const invG = 255 - g;
-        const invB = 255 - b;
+        // Invert the pixel first
+        const invR = 255 - data[k];
+        const invG = 255 - data[k + 1];
+        const invB = 255 - data[k + 2];
 
-        // Check if the INVERTED pixel is a light neutral color (likely a converted dark background)
-        if (invR > 220 && invG > 220 && invB > 220) {
-          // If so, force it to pure white
+        // Now, check the inverted pixel for background conditions
+        
+        // Condition 1: is very light gray/white
+        const isLight = invR > 230 && invG > 230 && invB > 230;
+
+        // Condition 2: has very low saturation
+        const r_norm = invR / 255;
+        const g_norm = invG / 255;
+        const b_norm = invB / 255;
+        
+        const max = Math.max(r_norm, g_norm, b_norm);
+        const min = Math.min(r_norm, g_norm, b_norm);
+        const delta = max - min;
+        const saturation = max === 0 ? 0 : delta / max;
+        const isDesaturated = saturation < 0.1;
+
+        if (isLight || isDesaturated) {
+          // Force to pure white
           data[k] = 255;
           data[k + 1] = 255;
           data[k + 2] = 255;
         } else {
-          // Otherwise, use the inverted colors for the foreground
+          // Keep the inverted foreground colors
           data[k] = invR;
           data[k + 1] = invG;
           data[k + 2] = invB;
