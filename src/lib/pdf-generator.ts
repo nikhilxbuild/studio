@@ -129,40 +129,47 @@ async function generateHighQualityInvertPdf(
       
       const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
       const data = imageData.data;
-
-      const getSaturation = (r, g, b) => {
-        r /= 255; g /= 255; b /= 255;
-        const max = Math.max(r, g, b), min = Math.min(r, g, b);
-        if (max === min) return 0; // achromatic
-        const d = max - min;
-        const l = (max + min) / 2;
-        return l > 0.5 ? d / (2 - max - min) : d / (max + min);
+      
+      // Helper function for HSL conversion, kept in local scope for isolation
+      const rgbToHsl = (r: number, g: number, b: number) => {
+          r /= 255; g /= 255; b /= 255;
+          const max = Math.max(r, g, b), min = Math.min(r, g, b);
+          let h = 0, s = 0, l = (max + min) / 2;
+          if (max !== min) {
+              const d = max - min;
+              s = l > 0.5 ? d / (2 - max - min) : d / (max + min);
+              switch (max) {
+                  case r: h = (g - b) / d + (g < b ? 6 : 0); break;
+                  case g: h = (b - r) / d + 2; break;
+                  case b: h = (r - g) / d + 4; break;
+              }
+              h /= 6;
+          }
+          return { h, s, l };
       };
       
       for (let k = 0; k < data.length; k += 4) {
-        // Apply the "perfect" inversion first to get the candidate pixel color
-        const invR = 255 - data[k];
-        const invG = 255 - data[k+1];
-        const invB = 255 - data[k+2];
-        
-        // Analyze the INVERTED pixel to determine if it's background
-        const luma = 0.2126 * invR + 0.7152 * invG + 0.0722 * invB;
-        const saturation = getSaturation(invR, invG, invB);
+        const r = data[k];
+        const g = data[k + 1];
+        const b = data[k + 2];
 
-        // A pixel is background if it's very light and not very colorful,
-        // or if it's almost pure white (hard enforcement).
-        const isBackground = (luma > 220 && saturation < 0.20) || (invR > 230 && invG > 230 && invB > 230);
+        // Convert ORIGINAL pixel to HSL to detect background
+        const { s, l } = rgbToHsl(r, g, b);
+
+        // Check if the ORIGINAL pixel is part of the background.
+        // Background is low saturation (grayish/whitish) and high lightness.
+        const isBackground = s < 0.18 && l > 0.70;
 
         if (isBackground) {
-            // It's background, force to pure white.
+            // It's background, force to pure white. DO NOT INVERT.
             data[k] = 255;
-            data[k+1] = 255;
-            data[k+2] = 255;
+            data[k + 1] = 255;
+            data[k + 2] = 255;
         } else {
-            // It's foreground, keep the "perfect" inverted color with slight correction.
-            data[k] = invR;
-            data[k+1] = Math.min(255, invG * 1.02);
-            data[k+2] = Math.min(255, invB * 1.04);
+            // It's foreground, apply the existing inversion logic.
+            data[k] = 255 - r;
+            data[k + 1] = 255 - g;
+            data[k + 2] = 255 - b;
         }
       }
       ctx.putImageData(imageData, 0, 0);
@@ -286,14 +293,18 @@ async function generateHighQualityBWPdf(
       
       // High quality B&W binarization
       for (let k = 0; k < data.length; k += 4) {
-        // BT.709 Luminance
-        const luma = 0.2126 * data[k] + 0.7152 * data[k + 1] + 0.0722 * data[k + 2];
+        // BT.601 Luminance: Y = 0.299R + 0.587G + 0.114B
+        const luma = 0.299 * data[k] + 0.587 * data[k + 1] + 0.114 * data[k + 2];
         
         let finalValue = 255; // Default to white
-        // Adaptive thresholding logic could go here, for now using a tuned curve
-        if (luma < 180) finalValue = 0; // Strong ink
-        if (luma > 245) finalValue = 255; // Paper white
-        if (luma < 40) finalValue = 0; // Black reinforcement
+        // A simple but effective threshold
+        if (luma < 200) finalValue = 0;
+
+        // Force near-white to pure white
+        if (luma > 245) finalValue = 255;
+
+        // Force near-black to pure black
+        if (luma < 40) finalValue = 0;
 
         data[k] = finalValue;
         data[k + 1] = finalValue;
