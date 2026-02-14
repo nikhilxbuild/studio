@@ -39,63 +39,6 @@ async function isPageBlank(
   }
 }
 
-function rgbToLab(r: number, g: number, b: number): [number, number, number] {
-  let var_R = r / 255;
-  let var_G = g / 255;
-  let var_B = b / 255;
-
-  if (var_R > 0.04045) {
-    var_R = Math.pow((var_R + 0.055) / 1.055, 2.4);
-  } else {
-    var_R = var_R / 12.92;
-  }
-  if (var_G > 0.04045) {
-    var_G = Math.pow((var_G + 0.055) / 1.055, 2.4);
-  } else {
-    var_G = var_G / 12.92;
-  }
-  if (var_B > 0.04045) {
-    var_B = Math.pow((var_B + 0.055) / 1.055, 2.4);
-  } else {
-    var_B = var_B / 12.92;
-  }
-
-  var_R *= 100;
-  var_G *= 100;
-  var_B *= 100;
-
-  const x = var_R * 0.4124 + var_G * 0.3576 + var_B * 0.1805;
-  const y = var_R * 0.2126 + var_G * 0.7152 + var_B * 0.0722;
-  const z = var_R * 0.0193 + var_G * 0.1192 + var_B * 0.9505;
-
-  let var_X = x / 95.047;
-  let var_Y = y / 100;
-  let var_Z = z / 108.883;
-
-  if (var_X > 0.008856) {
-    var_X = Math.pow(var_X, 1 / 3);
-  } else {
-    var_X = 7.787 * var_X + 16 / 116;
-  }
-  if (var_Y > 0.008856) {
-    var_Y = Math.pow(var_Y, 1 / 3);
-  } else {
-    var_Y = 7.787 * var_Y + 16 / 116;
-  }
-  if (var_Z > 0.008856) {
-    var_Z = Math.pow(var_Z, 1 / 3);
-  } else {
-    var_Z = 7.787 * var_Z + 16 / 116;
-  }
-
-  const l_star = 116 * var_Y - 16;
-  const a_star = 500 * (var_X - var_Y);
-  const b_star = 200 * (var_Y - var_Z);
-
-  return [l_star, a_star, b_star];
-}
-
-
 async function generateHighQualityInvertPdf(
   pages: Page[],
   customization: CustomizationOptions,
@@ -193,24 +136,23 @@ async function generateHighQualityInvertPdf(
         const invG = 255 - data[k+1];
         const invB = 255 - data[k+2];
         
-        const finalR = invR;
-        const finalG = Math.min(255, invG * 1.02);
-        const finalB = Math.min(255, invB * 1.04);
-        
-        // Now check if this inverted pixel is a background candidate using LAB
-        const [l, a, b] = rgbToLab(finalR, finalG, finalB);
-        const chroma = Math.sqrt(a * a + b * b);
+        // Now check if this inverted pixel is a background candidate
+        const Y = 0.2126 * invR + 0.7152 * invG + 0.0722 * invB;
+        const isBackground = Y > 210 && 
+                             Math.abs(invR - invG) < 12 &&
+                             Math.abs(invG - invB) < 12 &&
+                             Math.abs(invR - invB) < 12;
 
-        if (l > 92 && chroma < 5) {
+        if (isBackground) {
             // It's background, force to pure white.
             data[k] = 255;
             data[k+1] = 255;
             data[k+2] = 255;
         } else {
-            // It's foreground, keep the perfectly inverted color.
-            data[k] = finalR;
-            data[k+1] = finalG;
-            data[k+2] = finalB;
+            // It's foreground, keep the perfectly inverted color with slight correction.
+            data[k] = invR;
+            data[k+1] = Math.min(255, invG * 1.02);
+            data[k+2] = Math.min(255, invB * 1.04);
         }
       }
       ctx.putImageData(imageData, 0, 0);
