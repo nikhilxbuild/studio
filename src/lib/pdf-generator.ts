@@ -109,9 +109,8 @@ export async function generatePdf(
       const sourceWidth = image.width * (1 - cropAmount * 2);
       const sourceHeight = image.height * (1 - cropAmount * 2);
 
-      // Determine optimal canvas size for embedding for high quality.
-      // Aim for 350 DPI in the final PDF cell for enhanced print-readiness.
-      const targetEmbedDPI = 350;
+      // Aim for 220 DPI in the final PDF cell for good print quality and file size.
+      const targetEmbedDPI = 220;
       const embedScaleFactor = targetEmbedDPI / 72; // PDF points are 1/72 inch
       const targetCellPixelWidth = cellWidth * embedScaleFactor;
       const targetCellPixelHeight = cellHeight * embedScaleFactor;
@@ -138,9 +137,6 @@ export async function generatePdf(
       ctx.fillStyle = 'white';
       ctx.fillRect(0, 0, canvas.width, canvas.height);
 
-
-      // Draw the (potentially cropped) high-res source image onto the smaller canvas.
-      // This performs the downscaling.
       ctx.drawImage(
         image,
         sourceX,
@@ -162,24 +158,20 @@ export async function generatePdf(
           let r = data[k];
           let g = data[k + 1];
           let b = data[k + 2];
+          const luma = 0.299 * r + 0.587 * g + 0.114 * b;
 
-          // B&W is a final-pass filter, overriding others
+          // B&W is highest priority
           if (colorMode.bw) {
-            const luma = 0.299 * r + 0.587 * g + 0.114 * b;
             const finalColor = luma > 128 ? 255 : 0;
-            data[k] = data[k + 1] = data[k + 2] = finalColor;
-            continue; // Skip other filters if B&W
+            r = g = b = finalColor;
+          } 
+          // Invert is next, and always works on a grayscale base
+          else if (colorMode.invert) {
+            r = g = b = (255 - luma);
           }
-          
-          if (colorMode.grayscale) {
-            const luma = 0.299 * r + 0.587 * g + 0.114 * b;
+          // Grayscale is the fallback
+          else if (colorMode.grayscale) {
             r = g = b = luma;
-          }
-
-          if (colorMode.invert) {
-            r = 255 - r;
-            g = 255 - g;
-            b = 255 - b;
           }
           
           data[k] = r;
@@ -189,12 +181,11 @@ export async function generatePdf(
         ctx.putImageData(imageData, 0, 0);
       }
 
-      // Use PNG for lossless quality
       const processedImageBytes = await fetch(
-        canvas.toDataURL('image/png')
+        canvas.toDataURL('image/jpeg', 0.92)
       ).then((res) => res.arrayBuffer());
 
-      const pdfImage = await newPdfDoc.embedPng(processedImageBytes);
+      const pdfImage = await newPdfDoc.embedJpg(processedImageBytes);
 
       const { width: imgWidth, height: imgHeight } = pdfImage.scale(1);
       const scale = Math.min(cellWidth / imgWidth, cellHeight / imgHeight);
@@ -225,5 +216,5 @@ export async function generatePdf(
     }
   }
 
-  return await newPdfDoc.save();
+  return await newPdfDoc.save({ useObjectStreams: true });
 }
