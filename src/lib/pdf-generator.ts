@@ -45,52 +45,52 @@ async function generateHighQualityInvertPdf(
   customization: CustomizationOptions,
   setProgress: (progress: number) => void
 ): Promise<Uint8Array> {
-  // Helper function for LAB conversion, scoped to this function to ensure isolation.
-  // This is a complex segmentation task, so we use LAB color space to better
-  // separate background from foreground based on luminance and colorlessness.
-  const rgbToLab = (r: number, g: number, b: number) => {
-    // Step 1: sRGB to XYZ
-    let var_R = r / 255;
-    let var_G = g / 255;
-    let var_B = b / 255;
+  // --- NEW, FROM-SCRATCH INVERT PIPELINE ---
 
-    if (var_R > 0.04045) var_R = Math.pow((var_R + 0.055) / 1.055, 2.4);
-    else var_R = var_R / 12.92;
-    if (var_G > 0.04045) var_G = Math.pow((var_G + 0.055) / 1.055, 2.4);
-    else var_G = var_G / 12.92;
-    if (var_B > 0.04045) var_B = Math.pow((var_B + 0.055) / 1.055, 2.4);
-    else var_B = var_B / 12.92;
+  // HSL conversion helpers, scoped to this function for isolation.
+  const rgbToHsl = (r: number, g: number, b: number) => {
+    r /= 255;
+    g /= 255;
+    b /= 255;
+    const max = Math.max(r, g, b);
+    const min = Math.min(r, g, b);
+    let h = 0, s = 0, l = (max + min) / 2;
 
-    var_R *= 100;
-    var_G *= 100;
-    var_B *= 100;
-
-    const x = var_R * 0.4124 + var_G * 0.3576 + var_B * 0.1805;
-    const y = var_R * 0.2126 + var_G * 0.7152 + var_B * 0.0722;
-    const z = var_R * 0.0193 + var_G * 0.1192 + var_B * 0.9505;
-
-    // Step 2: XYZ to LAB
-    let var_X = x / 95.047;
-    let var_Y = y / 100.0;
-    let var_Z = z / 108.883;
-
-    if (var_X > 0.008856) var_X = Math.pow(var_X, 1 / 3);
-    else var_X = 7.787 * var_X + 16 / 116;
-    if (var_Y > 0.008856) var_Y = Math.pow(var_Y, 1 / 3);
-    else var_Y = 7.787 * var_Y + 16 / 116;
-    if (var_Z > 0.008856) var_Z = Math.pow(var_Z, 1 / 3);
-    else var_Z = 7.787 * var_Z + 16 / 116;
-
-    const l = 116 * var_Y - 16;
-    const a = 500 * (var_X - var_Y);
-    const b_lab = 200 * (var_Y - var_Z);
-
-    return { l, a, b: b_lab };
+    if (max !== min) {
+      const d = max - min;
+      s = l > 0.5 ? d / (2 - max - min) : d / (max + min);
+      switch (max) {
+        case r: h = (g - b) / d + (g < b ? 6 : 0); break;
+        case g: h = (b - r) / d + 2; break;
+        case b: h = (r - g) / d + 4; break;
+      }
+      h /= 6;
+    }
+    return { h, s, l };
   };
 
-  // This function NO LONGER INVERTS. Per user instruction, it now performs
-  // background removal, forcing the background to white while preserving original foreground colors.
-  // The name is kept to respect pipeline isolation rules.
+  const hslToRgb = (h: number, s: number, l: number) => {
+    let r, g, b;
+    if (s === 0) {
+      r = g = b = l;
+    } else {
+      const hue2rgb = (p: number, q: number, t: number) => {
+        if (t < 0) t += 1;
+        if (t > 1) t -= 1;
+        if (t < 1/6) return p + (q - p) * 6 * t;
+        if (t < 1/2) return q;
+        if (t < 2/3) return p + (q - p) * (2/3 - t) * 6;
+        return p;
+      };
+      const q = l < 0.5 ? l * (1 + s) : l + s - l * s;
+      const p = 2 * l - q;
+      r = hue2rgb(p, q, h + 1/3);
+      g = hue2rgb(p, q, h);
+      b = hue2rgb(p, q, h - 1/3);
+    }
+    return { r: r * 255, g: g * 255, b: b * 255 };
+  };
+
   let pagesToProcess = pages.filter((p) => p.selected);
   setProgress(5);
 
@@ -177,39 +177,34 @@ async function generateHighQualityInvertPdf(
       const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
       const data = imageData.data;
       
-      // PASS 1: Advanced Background Segmentation using LAB color space
       for (let k = 0; k < data.length; k += 4) {
         const r = data[k];
         const g = data[k + 1];
         const b = data[k + 2];
+        
+        const { h, s, l } = rgbToHsl(r, g, b);
 
-        const { l, a, b: b_lab } = rgbToLab(r, g, b);
-        const chroma = Math.sqrt(a * a + b_lab * b_lab);
-
-        // A pixel is background if it is very light (l > 92) and has very little color (chroma < 10).
-        if (l > 92 && chroma < 10) {
-          // This is a background pixel, force to pure white.
+        if (s < 0.18 && l > 0.65) {
+          // Background pixel: Force to pure white
           data[k] = 255;
           data[k + 1] = 255;
           data[k + 2] = 255;
+        } else {
+          // Foreground pixel: Invert lightness, preserve hue and saturation
+          const newLightness = 1 - l;
+          const { r: newR, g: newG, b: newB } = hslToRgb(h, s, newLightness);
+          
+          // Apply anti-cyan correction
+          data[k] = newR;
+          data[k + 1] = newG * 0.96;
+          data[k + 2] = newB * 0.94;
         }
-        // Else: This is a foreground pixel, and its original color is preserved.
-      }
-      
-      // PASS 2: Hard Clamp to clean up any remaining near-white artifacts
-      for (let k = 0; k < data.length; k += 4) {
-          if (data[k] > 230 && data[k+1] > 230 && data[k+2] > 230) {
-              data[k] = 255;
-              data[k+1] = 255;
-              data[k+2] = 255;
-          }
       }
 
       ctx.putImageData(imageData, 0, 0);
 
-      // Embed as PNG for maximum quality, to avoid introducing artifacts.
-      const processedImageBytes = await fetch(canvas.toDataURL('image/png')).then((res) => res.arrayBuffer());
-      const pdfImage = await newPdfDoc.embedPng(processedImageBytes);
+      const processedImageBytes = await fetch(canvas.toDataURL('image/jpeg', 0.92)).then((res) => res.arrayBuffer());
+      const pdfImage = await newPdfDoc.embedJpg(processedImageBytes);
 
       const { width: imgWidth, height: imgHeight } = pdfImage.scale(1);
       const scale = Math.min(cellWidth / imgWidth, cellHeight / imgHeight);
