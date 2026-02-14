@@ -1,6 +1,5 @@
 'use client';
 
-import { useState } from 'react';
 import {
   ArrowRight,
   FileCheck,
@@ -12,11 +11,11 @@ import {
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
-import PdfTool from '@/components/app/pdf-tool';
+import Link from 'next/link';
 
 // --- Landing Page Components ---
 
-const LandingHero = ({ onStart }: { onStart: () => void }) => (
+const LandingHero = () => (
   <section className="w-full pt-12 md:pt-16 pb-20 md:pb-24 text-center">
     <div className="container mx-auto px-4 md:px-6">
       <div className="max-w-4xl mx-auto">
@@ -30,8 +29,10 @@ const LandingHero = ({ onStart }: { onStart: () => void }) => (
           Upload PDFs, customize layout, and get clean printable notes instantly.
         </p>
         <div className="mt-8 flex flex-col sm:flex-row justify-center gap-4">
-          <Button size="lg" onClick={onStart}>
-            Upload PDF <ArrowRight className="ml-2 h-5 w-5" />
+          <Button size="lg" asChild>
+            <Link href="/tool">
+              Upload PDF <ArrowRight className="ml-2 h-5 w-5" />
+            </Link>
           </Button>
         </div>
       </div>
@@ -128,20 +129,9 @@ const FeaturesSection = () => {
 };
 
 export default function Home() {
-  const [showTool, setShowTool] = useState(false);
-
-  const handleStart = () => {
-    setShowTool(true);
-    window.scrollTo({ top: 0, behavior: 'smooth' });
-  };
-  
-  if (showTool) {
-    return <PdfTool />;
-  }
-
   return (
     <>
-      <LandingHero onStart={handleStart} />
+      <LandingHero />
       <StatsSection />
       <FeaturesSection />
     </>

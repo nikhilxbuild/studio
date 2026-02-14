@@ -25,7 +25,7 @@ const STEPS = [
   { id: 'download', title: 'Download' },
 ];
 
-export default function PdfTool() {
+export default function ToolPage() {
   const [step, setStep] = useState<
     | 'upload'
     | 'processing'
