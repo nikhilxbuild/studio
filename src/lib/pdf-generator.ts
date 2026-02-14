@@ -46,6 +46,8 @@ async function generateHighQualityInvertPdf(
   setProgress: (progress: number) => void
 ): Promise<Uint8Array> {
   // Helper function for LAB conversion, scoped to this function to ensure isolation.
+  // This is a complex segmentation task, so we use LAB color space to better
+  // separate background from foreground based on luminance and colorlessness.
   const rgbToLab = (r: number, g: number, b: number) => {
     // Step 1: sRGB to XYZ
     let var_R = r / 255;
@@ -86,6 +88,9 @@ async function generateHighQualityInvertPdf(
     return { l, a, b: b_lab };
   };
 
+  // This function NO LONGER INVERTS. Per user instruction, it now performs
+  // background removal, forcing the background to white while preserving original foreground colors.
+  // The name is kept to respect pipeline isolation rules.
   let pagesToProcess = pages.filter((p) => p.selected);
   setProgress(5);
 
@@ -172,40 +177,39 @@ async function generateHighQualityInvertPdf(
       const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
       const data = imageData.data;
       
+      // PASS 1: Advanced Background Segmentation using LAB color space
       for (let k = 0; k < data.length; k += 4) {
-        const originalR = data[k];
-        const originalG = data[k + 1];
-        const originalB = data[k + 2];
+        const r = data[k];
+        const g = data[k + 1];
+        const b = data[k + 2];
 
-        // Detect background on ORIGINAL pixel using LAB color space
-        const { l, a, b } = rgbToLab(originalR, originalG, originalB);
-        const chroma = Math.sqrt(a * a + b * b);
+        const { l, a, b: b_lab } = rgbToLab(r, g, b);
+        const chroma = Math.sqrt(a * a + b_lab * b_lab);
 
-        if (l > 92 && chroma < 5) {
+        // A pixel is background if it is very light (l > 92) and has very little color (chroma < 10).
+        if (l > 92 && chroma < 10) {
           // This is a background pixel, force to pure white.
           data[k] = 255;
           data[k + 1] = 255;
           data[k + 2] = 255;
-        } else {
-          // This is a foreground pixel, apply the "perfect" inversion.
-          // Invert
-          let r = 255 - originalR;
-          let g = 255 - originalG;
-          let b = 255 - originalB;
-
-          // Rebalance to reduce cyan cast
-          g = Math.min(255, g + 8);
-          b = Math.min(255, b + 12);
-          
-          data[k] = r;
-          data[k + 1] = g;
-          data[k + 2] = b;
         }
+        // Else: This is a foreground pixel, and its original color is preserved.
       }
+      
+      // PASS 2: Hard Clamp to clean up any remaining near-white artifacts
+      for (let k = 0; k < data.length; k += 4) {
+          if (data[k] > 230 && data[k+1] > 230 && data[k+2] > 230) {
+              data[k] = 255;
+              data[k+1] = 255;
+              data[k+2] = 255;
+          }
+      }
+
       ctx.putImageData(imageData, 0, 0);
 
-      const processedImageBytes = await fetch(canvas.toDataURL('image/jpeg', 0.92)).then((res) => res.arrayBuffer());
-      const pdfImage = await newPdfDoc.embedJpg(processedImageBytes);
+      // Embed as PNG for maximum quality, to avoid introducing artifacts.
+      const processedImageBytes = await fetch(canvas.toDataURL('image/png')).then((res) => res.arrayBuffer());
+      const pdfImage = await newPdfDoc.embedPng(processedImageBytes);
 
       const { width: imgWidth, height: imgHeight } = pdfImage.scale(1);
       const scale = Math.min(cellWidth / imgWidth, cellHeight / imgHeight);
