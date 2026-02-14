@@ -130,25 +130,27 @@ async function generateHighQualityInvertPdf(
       const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
       const data = imageData.data;
       
-      const backgroundThreshold = 235;
+      const backgroundLuminanceThreshold = 50; // Treat pixels darker than this as background
 
       for (let k = 0; k < data.length; k += 4) {
         const r = data[k];
         const g = data[k + 1];
         const b = data[k + 2];
+        
+        const luma = 0.299 * r + 0.587 * g + 0.114 * b;
 
-        // If pixel is near-white, force it to pure white
-        if (r > backgroundThreshold && g > backgroundThreshold && b > backgroundThreshold) {
+        // If the pixel is dark (part of the background in a dark-mode PDF), force it to pure white
+        if (luma < backgroundLuminanceThreshold) {
           data[k] = 255;
           data[k + 1] = 255;
           data[k + 2] = 255;
         } else {
-          // Otherwise, invert the colors
+          // Otherwise, it's foreground content. Invert it.
           let invR = 255 - r;
           let invG = 255 - g;
           let invB = 255 - b;
 
-          // Mild rebalance to prevent heavy cyan/blue cast
+          // Apply mild rebalance to prevent heavy cyan/blue cast on the inverted content
           invG = invG * 0.99;
           invB = invB * 0.97;
           
