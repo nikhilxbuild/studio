@@ -57,50 +57,71 @@ export default function PdfTool() {
     window.scrollTo(0, 0);
   }, [step]);
 
-  const handleUpload = async (file: File) => {
+  const handleUpload = async (files: FileList) => {
     setStep('processing');
     setProcessingProgress(0);
+    const allPages: Page[] = [];
+    let pageIdCounter = 1;
+
     try {
-      const fileReader = new FileReader();
-      fileReader.onload = async function () {
-        if (this.result) {
-          const typedarray = new Uint8Array(this.result as ArrayBuffer);
-          const pdf = await pdfjsLib.getDocument(typedarray).promise;
-          const newPages: Page[] = [];
+      for (let i = 0; i < files.length; i++) {
+        const file = files[i];
+        const fileReader = new FileReader();
+        
+        // This promise will resolve with the pages for a single PDF file
+        const filePages = await new Promise<Page[]>((resolve, reject) => {
+          fileReader.onload = async function () {
+            if (this.result) {
+              try {
+                const typedarray = new Uint8Array(this.result as ArrayBuffer);
+                const pdf = await pdfjsLib.getDocument(typedarray).promise;
+                const newPagesFromFile: Page[] = [];
+                
+                const scale = 2.5;
 
-          const scale = 2.5;
+                for (let j = 1; j <= pdf.numPages; j++) {
+                  const page = await pdf.getPage(j);
+                  const viewport = page.getViewport({ scale });
+                  const canvas = document.createElement('canvas');
+                  const context = canvas.getContext('2d');
+                  canvas.height = viewport.height;
+                  canvas.width = viewport.width;
 
-          for (let i = 1; i <= pdf.numPages; i++) {
-            const page = await pdf.getPage(i);
-            const viewport = page.getViewport({ scale });
-            const canvas = document.createElement('canvas');
-            const context = canvas.getContext('2d');
-            canvas.height = viewport.height;
-            canvas.width = viewport.width;
-
-            if (context) {
-              await page.render({ canvasContext: context, viewport: viewport })
-                .promise;
-              newPages.push({
-                id: i,
-                sourceUrl: canvas.toDataURL('image/png'),
-                sourceHint: `page ${i}`,
-                selected: true,
-              });
+                  if (context) {
+                    await page.render({ canvasContext: context, viewport: viewport }).promise;
+                    newPagesFromFile.push({
+                      id: pageIdCounter++,
+                      sourceUrl: canvas.toDataURL('image/png'),
+                      sourceHint: `Page ${j} of ${file.name}`,
+                      selected: true,
+                    });
+                  }
+                }
+                resolve(newPagesFromFile);
+              } catch (e) {
+                console.error(`Error processing file ${file.name}:`, e);
+                reject(new Error(`Failed to process ${file.name}. It might be corrupted or password-protected.`));
+              }
+            } else {
+              reject(new Error(`Could not read file ${file.name}`));
             }
-            setProcessingProgress(Math.round((i / pdf.numPages) * 100));
-          }
-          setPages(newPages);
-          setStep('reorder');
-        }
-      };
-      fileReader.readAsArrayBuffer(file);
-    } catch (error) {
-      console.error('Error processing PDF:', error);
+          };
+
+          fileReader.onerror = (error) => reject(error);
+          fileReader.readAsArrayBuffer(file);
+        });
+
+        allPages.push(...filePages);
+        setProcessingProgress(Math.round(((i + 1) / files.length) * 100));
+      }
+
+      setPages(allPages);
+      setStep('reorder');
+    } catch (error: any) {
+      console.error('Error processing PDFs:', error);
       toast({
         title: 'Error Processing PDF',
-        description:
-          'There was an issue processing your PDF. Please try again.',
+        description: error.message || 'There was an issue processing your PDFs. Please try again.',
         variant: 'destructive',
       });
       setStep('upload');
@@ -166,8 +187,8 @@ export default function PdfTool() {
             {step === 'processing' && (
               <GenerateStep
                 progress={processingProgress}
-                title="Processing your PDF..."
-                description="Extracting pages from your document. This might take a moment."
+                title="Processing your PDFs..."
+                description="Extracting pages from your documents. This might take a moment."
               />
             )}
             {step === 'reorder' && (

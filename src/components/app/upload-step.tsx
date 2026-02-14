@@ -9,7 +9,7 @@ import { cn } from '@/lib/utils';
 import { Card, CardContent } from '../ui/card';
 
 interface UploadStepProps {
-  onUpload: (file: File) => void;
+  onUpload: (files: FileList) => void;
 }
 
 export function UploadStep({ onUpload }: UploadStepProps) {
@@ -18,16 +18,28 @@ export function UploadStep({ onUpload }: UploadStepProps) {
   const { toast } = useToast();
 
   const handleFileSelect = (files: FileList | null) => {
-    if (files && files[0]) {
-      if (files[0].type === 'application/pdf') {
-        onUpload(files[0]);
-      } else {
-        toast({
-          title: 'Invalid File Type',
-          description: 'Please upload a PDF file.',
-          variant: 'destructive',
-        });
-      }
+    if (!files || files.length === 0) {
+      return;
+    }
+    
+    if (files.length > 5) {
+      toast({
+        title: 'File Limit Exceeded',
+        description: 'You can upload a maximum of 5 PDFs at once.',
+        variant: 'destructive',
+      });
+      return;
+    }
+
+    const allPdfs = Array.from(files).every((file) => file.type === 'application/pdf');
+    if (allPdfs) {
+      onUpload(files);
+    } else {
+      toast({
+        title: 'Invalid File Type',
+        description: 'Please upload only PDF files.',
+        variant: 'destructive',
+      });
     }
   };
 
@@ -89,10 +101,10 @@ export function UploadStep({ onUpload }: UploadStepProps) {
               </div>
               <div className="space-y-1">
                 <p className="font-semibold text-foreground">
-                  Drag & drop a PDF file here
+                  Drag & drop up to 5 PDF files here
                 </p>
                 <p className="text-sm text-muted-foreground">
-                  or click to select a file from your device
+                  or click to select files from your device
                 </p>
               </div>
             </div>
@@ -101,6 +113,7 @@ export function UploadStep({ onUpload }: UploadStepProps) {
             ref={fileInputRef}
             type="file"
             accept=".pdf"
+            multiple
             className="hidden"
             onChange={(e) => handleFileSelect(e.target.files)}
           />
@@ -110,7 +123,7 @@ export function UploadStep({ onUpload }: UploadStepProps) {
             onClick={() => fileInputRef.current?.click()}
           >
             <FileIcon />
-            Select PDF
+            Select PDF(s)
           </Button>
           <p className="mt-4 text-xs text-muted-foreground">
             Files are processed temporarily and deleted after your session.

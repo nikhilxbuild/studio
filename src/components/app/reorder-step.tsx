@@ -126,7 +126,10 @@ export function ReorderStep({
               </div>
 
               <div className="flex w-full items-center justify-center">
-                <p className="text-xs font-medium text-muted-foreground">
+                <p
+                  className="text-xs font-medium text-muted-foreground"
+                  title={page.sourceHint}
+                >
                   Page {index + 1}
                 </p>
               </div>
