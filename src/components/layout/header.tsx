@@ -18,7 +18,7 @@ export function Header() {
   const pathname = usePathname();
 
   return (
-    <header className="relative z-10 w-full py-2 glassmorphic">
+    <header className="relative z-10 w-full py-2 glassmorphic border-transparent">
       <div className="container mx-auto flex max-w-7xl items-center justify-center px-4">
         <a href="/">
           <Image

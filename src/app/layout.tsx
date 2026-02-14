@@ -36,7 +36,7 @@ export default function RootLayout({
             <Footer />
         </div>
         {/* This spacer creates room for the fixed mobile nav, making the footer clickable */}
-        <div className="h-16 md:hidden" />
+        <div className="h-24 md:hidden" />
         <MobileNav />
         <Toaster />
       </body>
