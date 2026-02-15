@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useMemo, useEffect } from 'react';
+import { useState, useMemo, useEffect, useRef } from 'react';
 import * as pdfjsLib from 'pdfjs-dist';
 
 import type { Page, CustomizationOptions } from '@/lib/types';
@@ -54,14 +54,44 @@ export default function ToolPage() {
   const [sourceFileName, setSourceFileName] = useState<string>('eduslide-output');
   const [downloadFileName, setDownloadFileName] = useState<string>('eduslide-output_enhanced.pdf');
   const { toast } = useToast();
+  const progressTimeoutRef = useRef<NodeJS.Timeout[]>([]);
 
   useEffect(() => {
     window.scrollTo(0, 0);
   }, [step]);
+  
+  useEffect(() => {
+    if (step === 'processing') {
+      progressTimeoutRef.current.forEach(clearTimeout);
+      progressTimeoutRef.current = [];
+      setProcessingProgress(0);
+
+      const scheduleUpdate = (value: number, delay: number) => {
+        const timeout = setTimeout(() => {
+          if (step === 'processing') {
+            setProcessingProgress(value);
+          }
+        }, delay);
+        progressTimeoutRef.current.push(timeout);
+      };
+      
+      scheduleUpdate(10, 200);
+      scheduleUpdate(25, 1200);
+      scheduleUpdate(45, 2500);
+      scheduleUpdate(65, 4000);
+      scheduleUpdate(80, 5500);
+      scheduleUpdate(90, 7000);
+      scheduleUpdate(95, 8500);
+    }
+
+    return () => {
+      progressTimeoutRef.current.forEach(clearTimeout);
+    };
+  }, [step]);
 
   const handleUpload = async (files: FileList) => {
     setStep('processing');
-    setProcessingProgress(0);
+    const startTime = Date.now();
     const allPages: Page[] = [];
     let pageIdCounter = 1;
 
@@ -78,7 +108,6 @@ export default function ToolPage() {
         const file = files[i];
         const fileReader = new FileReader();
         
-        // This promise will resolve with the pages for a single PDF file
         const filePages = await new Promise<Page[]>((resolve, reject) => {
           fileReader.onload = async function () {
             if (this.result) {
@@ -87,7 +116,7 @@ export default function ToolPage() {
                 const pdf = await pdfjsLib.getDocument(typedarray).promise;
                 const newPagesFromFile: Page[] = [];
                 
-                const scale = 1.5; // Use a reasonable scale for previews
+                const scale = 1.5;
 
                 for (let j = 1; j <= pdf.numPages; j++) {
                   const page = await pdf.getPage(j);
@@ -101,7 +130,6 @@ export default function ToolPage() {
                     await page.render({ canvasContext: context, viewport: viewport }).promise;
                     newPagesFromFile.push({
                       id: pageIdCounter++,
-                      // Use JPEG for smaller memory footprint for previews
                       sourceUrl: canvas.toDataURL('image/jpeg', 0.85),
                       sourceHint: `Page ${j} of ${file.name}`,
                       selected: true,
@@ -123,11 +151,25 @@ export default function ToolPage() {
         });
 
         allPages.push(...filePages);
-        setProcessingProgress(Math.round(((i + 1) / files.length) * 100));
+      }
+      
+      const endTime = Date.now();
+      const elapsedTime = endTime - startTime;
+      const minDuration = 8000;
+
+      if (elapsedTime < minDuration) {
+        await new Promise(resolve => setTimeout(resolve, minDuration - elapsedTime));
       }
 
+      progressTimeoutRef.current.forEach(clearTimeout);
+
       setPages(allPages);
-      setStep('reorder');
+      setProcessingProgress(100);
+
+      setTimeout(() => {
+        setStep('reorder');
+      }, 500);
+
     } catch (error: any) {
       console.error('Error processing PDFs:', error);
       toast({
