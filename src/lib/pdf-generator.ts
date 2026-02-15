@@ -1,4 +1,3 @@
-
 'use client';
 
 import { PDFDocument, PageSizes } from 'pdf-lib';
@@ -45,53 +44,6 @@ async function generateHighQualityInvertPdf(
   customization: CustomizationOptions,
   setProgress: (progress: number) => void
 ): Promise<Uint8Array> {
-  // --- NEW, FROM-SCRATCH HSL INVERT PIPELINE ---
-  
-  // --- Start of isolated helper functions for HSL conversion ---
-  function rgbToHsl(r: number, g: number, b: number) {
-    r /= 255;
-    g /= 255;
-    b /= 255;
-    const max = Math.max(r, g, b);
-    const min = Math.min(r, g, b);
-    let h = 0, s = 0, l = (max + min) / 2;
-
-    if (max !== min) {
-        const d = max - min;
-        s = l > 0.5 ? d / (2 - max - min) : d / (max + min);
-        switch (max) {
-            case r: h = (g - b) / d + (g < b ? 6 : 0); break;
-            case g: h = (b - r) / d + 2; break;
-            case b: h = (r - g) / d + 4; break;
-        }
-        h /= 6;
-    }
-    return { h, s, l };
-  }
-
-  function hslToRgb(h: number, s: number, l: number) {
-      let r, g, b;
-      if (s === 0) {
-          r = g = b = l; // achromatic
-      } else {
-          const hue2rgb = (p: number, q: number, t: number) => {
-              if (t < 0) t += 1;
-              if (t > 1) t -= 1;
-              if (t < 1/6) return p + (q - p) * 6 * t;
-              if (t < 1/2) return q;
-              if (t < 2/3) return p + (q - p) * (2/3 - t) * 6;
-              return p;
-          };
-          const q = l < 0.5 ? l * (1 + s) : l + s - l * s;
-          const p = 2 * l - q;
-          r = hue2rgb(p, q, h + 1/3);
-          g = hue2rgb(p, q, h);
-          b = hue2rgb(p, q, h - 1/3);
-      }
-      return { r: Math.round(r * 255), g: Math.round(g * 255), b: Math.round(b * 255) };
-  }
-  // --- End of isolated helper functions ---
-
   let pagesToProcess = pages.filter((p) => p.selected);
   setProgress(5);
 
@@ -164,7 +116,7 @@ async function generateHighQualityInvertPdf(
       const canvas = document.createElement('canvas');
       canvas.width = finalCanvasWidth;
       canvas.height = finalCanvasHeight;
-      const ctx = canvas.getContext('2d', { colorSpace: 'srgb', willReadFrequently: true });
+      const ctx = canvas.getContext('2d', { colorSpace: 'srgb' });
       if (!ctx) throw new Error('Could not get canvas context');
       
       const cropAmount = cropBorders ? 0.03 : 0;
@@ -178,33 +130,35 @@ async function generateHighQualityInvertPdf(
       const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
       const data = imageData.data;
       
+      const backgroundLuminanceThreshold = 50; // Treat pixels darker than this as background
+
       for (let k = 0; k < data.length; k += 4) {
-          const r = data[k];
-          const g = data[k+1];
-          const b = data[k+2];
+        const r = data[k];
+        const g = data[k + 1];
+        const b = data[k + 2];
+        
+        const luma = 0.299 * r + 0.587 * g + 0.114 * b;
 
-          const { h, s, l } = rgbToHsl(r, g, b);
+        // If the pixel is dark (part of the background in a dark-mode PDF), force it to pure white
+        if (luma < backgroundLuminanceThreshold) {
+          data[k] = 255;
+          data[k + 1] = 255;
+          data[k + 2] = 255;
+        } else {
+          // Otherwise, it's foreground content. Invert it.
+          let invR = 255 - r;
+          let invG = 255 - g;
+          let invB = 255 - b;
 
-          if (s < 0.18 && l > 0.65) {
-              // Background pixel -> force to pure white
-              data[k] = 255;
-              data[k + 1] = 255;
-              data[k + 2] = 255;
-          } else {
-              // Foreground pixel -> invert lightness, preserve hue and saturation
-              const newLightness = 1.0 - l;
-              let { r: newR, g: newG, b: newB } = hslToRgb(h, s, newLightness);
-              
-              // Anti-cyan correction
-              newG = Math.floor(newG * 0.96);
-              newB = Math.floor(newB * 0.94);
-
-              data[k] = newR;
-              data[k + 1] = newG;
-              data[k + 2] = newB;
-          }
+          // Apply mild rebalance to prevent heavy cyan/blue cast on the inverted content
+          invG = invG * 0.99;
+          invB = invB * 0.97;
+          
+          data[k] = invR;
+          data[k + 1] = invG;
+          data[k + 2] = invB;
+        }
       }
-      
       ctx.putImageData(imageData, 0, 0);
 
       const processedImageBytes = await fetch(canvas.toDataURL('image/jpeg', 0.92)).then((res) => res.arrayBuffer());
@@ -307,7 +261,7 @@ async function generateHighQualityBWPdf(
       const canvas = document.createElement('canvas');
       canvas.width = finalCanvasWidth;
       canvas.height = finalCanvasHeight;
-      const ctx = canvas.getContext('2d', { colorSpace: 'srgb', willReadFrequently: true });
+      const ctx = canvas.getContext('2d', { colorSpace: 'srgb' });
       if (!ctx) throw new Error('Could not get canvas context');
       
       ctx.fillStyle = 'white';
@@ -323,26 +277,27 @@ async function generateHighQualityBWPdf(
 
       const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
       const data = imageData.data;
+      const contrast = 12.75; // Approx +5%
+      const contrastFactor = (259 * (contrast + 255)) / (255 * (259 - contrast));
       
       for (let k = 0; k < data.length; k += 4) {
-        // True Grayscale (Luminance)
+        // Luma-based grayscale conversion
         const luma = 0.299 * data[k] + 0.587 * data[k + 1] + 0.114 * data[k + 2];
         
-        let finalValue = luma < 200 ? 0 : 255;
-
-        // White cleanup and black reinforcement
-        if (luma > 245) finalValue = 255;
-        if (luma < 40) finalValue = 0;
-
+        let contrastedLuma = contrastFactor * (luma - 128) + 128;
+        contrastedLuma = Math.max(0, Math.min(255, contrastedLuma));
+        
+        // Thresholding for pure B&W
+        const finalValue = contrastedLuma < 128 ? 0 : 255;
+        
         data[k] = finalValue;
         data[k + 1] = finalValue;
         data[k + 2] = finalValue;
       }
       ctx.putImageData(imageData, 0, 0);
 
-      // Using PNG for lossless B&W output as requested
-      const processedImageBytes = await fetch(canvas.toDataURL('image/png')).then((res) => res.arrayBuffer());
-      const pdfImage = await newPdfDoc.embedPng(processedImageBytes);
+      const processedImageBytes = await fetch(canvas.toDataURL('image/jpeg', 0.95)).then((res) => res.arrayBuffer());
+      const pdfImage = await newPdfDoc.embedJpg(processedImageBytes);
 
       const { width: imgWidth, height: imgHeight } = pdfImage.scale(1);
       const scale = Math.min(cellWidth / imgWidth, cellHeight / imgHeight);
@@ -485,4 +440,4 @@ export async function generatePdf(
     }
   }
   return await newPdfDoc.save({ useObjectStreams: true });
-}
+                             }
